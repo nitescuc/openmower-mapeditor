@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Navigation Areas</title>
+  <style>
+    .polygon-navigation-group {
+      fill: whitesmoke;
+      stroke: black;
+      stroke-width: 2px;
+    }
+    .polygon-mowing-group {
+      fill: greenyellow;
+      stroke: black;
+      stroke-width: 2px;
+    }
+    .polygon-obstacle {
+      fill: lightpink;
+      stroke: black;
+      stroke-width: 2px;
+    }
+    .vertex {
+      fill: white;
+      stroke: black;
+      stroke-width: 1px;
+      cursor: move;
+    }
+    .hovered-vertex {
+      fill: lightblue;
+    }
+    .save-button {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div><button class="save-button">Save Navigation Areas</button><span id="pos_label"></span></div>
+  <div id="map"></div>
+
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script>
+    const mapMargin = 2;
+    let navigationAreas;
+    let domain;
+    let xScale, yScale;
+    let xAxis, yAxis;
+    let svg = d3.select("#map")
+      .append("svg")
+      .attr("viewBox", "0 0 1024 800");
+    svg.call(d3.zoom().on("zoom", function (event) {
+       updateMapAfterZoom(event);
+    }))
+    svg.on("mousemove", function(event) {
+      const pointer = d3.pointer(event);
+      const x = xScale.invert(pointer[0]);
+      const y = yScale.invert(pointer[1]);
+      d3.select("#pos_label").text("x: " + x.toFixed(2) + ", y: " + y.toFixed(2));
+    });
+
+    function updateMapAfterZoom(event) {
+      svg.attr("transform", event.transform);
+      svg.select(".x-axis").call(xAxis.scale(event.transform.rescaleX(xScale)));
+      svg.select(".y-axis").call(yAxis.scale(event.transform.rescaleY(yScale)));
+    }
+
+    fetch('/map')
+      .then(response => response.json())
+      .then(data => {
+        navigationAreas = data;
+
+        renderData(navigationAreas);
+      })
+      .catch(error => console.error(error));
+
+    function computeDomain(navigationAreas) {
+      const minX = d3.min(navigationAreas.mowing_areas, d => d3.min(d.points, p => p.x));
+      const maxX = d3.max(navigationAreas.mowing_areas, d => d3.max(d.points, p => p.x));
+      const minY = d3.min(navigationAreas.mowing_areas, d => d3.min(d.points, p => p.y));
+      const maxY = d3.max(navigationAreas.mowing_areas, d => d3.max(d.points, p => p.y));
+      return {
+        minX: minX,
+        maxX: maxX,
+        minY: minY,
+        maxY: maxY
+      }
+    }
+
+    function renderData(navigationAreas) {
+      // Remove existing navigation groups
+      svg.selectAll(".navigation-group").remove();
+      svg.selectAll(".mowing-group").remove();
+
+      domain = computeDomain(navigationAreas);
+      console.log(domain);
+
+      xScale = d3.scaleLinear()
+      .domain([domain.minX - mapMargin, domain.maxX + mapMargin])
+      .range([0, 1024]);
+
+      yScale = d3.scaleLinear()
+        .domain([domain.minY - mapMargin, domain.maxY + mapMargin])
+        .range([800, 0]);
+
+      // Create x-axis and y-axis scales
+      xAxis = d3.axisBottom(xScale).ticks(10);
+      yAxis = d3.axisLeft(yScale).ticks(10);
+
+      // Append x-axis to the SVG
+      svg.append("g")
+        .attr("class", "x-axis")
+        .attr("transform", "translate(0, " + yScale(0) + ")") // Position the x-axis at the bottom
+        .call(xAxis);
+
+      // Append y-axis to the SVG
+      svg.append("g")
+        .attr("class", "y-axis")
+        .attr("transform", "translate(" + xScale(0) + ", 0)") // Position the x-axis at the bottom
+        .call(yAxis);
+
+      renderAreas(navigationAreas.navigation_areas, "navigation-group");
+      renderAreas(navigationAreas.mowing_areas, "mowing-group");
+    }
+    function renderAreas(navigation_areas, className) {
+
+        for (let idx = 0; idx < navigation_areas.length; idx++) {
+          renderNavigationArea(navigation_areas[idx], idx, className);
+        }
+    }
+
+    // Update the polygon's points when a vertex is moved
+    function updatePolygon(group) {
+      const points = group.data()[0].points;
+      group.select(".polygon")
+        .attr("points", points.map(p => `${xScale(p.x)}, ${yScale(p.y)}`).join(" "));
+    }
+
+    let startX = 0, startY = 0;
+    // Drag behavior for vertices
+    function drag() {
+      return d3.drag()
+        .on("start", function (event) {
+          const selected = d3.select(this);
+          selected.classed("selected-vertex", true);
+          startX = parseFloat(selected.attr("cx")) - event.x;
+          startY = parseFloat(selected.attr("cy")) - event.y;
+        })
+        .on("drag", function (event, d) {
+          const scaledX = xScale.invert(event.x + startX);
+          const scaledY = yScale.invert(event.y + startY);
+          d.x = scaledX;
+          d.y = scaledY;
+          d3.select("#pos_label").text("x: " + scaledX.toFixed(2) + ", y: " + scaledY.toFixed(2));
+          d3.select(this)
+            .attr("cx", event.x + startX)
+            .attr("cy", event.y + startY);
+          updatePolygon(d3.select(this.parentNode));
+        })
+        .on("end", function () {
+          d3.select(this).classed("selected-vertex", false);
+        });
+    }
+
+    function createVertices(navigationGroups, points, withDelete = true) {
+      // Create vertices for each point in the navigation area
+      if (withDelete) {
+        svg.selectAll(".vertex").remove();
+      }
+      let dataAreaIndex = navigationGroups.attr("index");
+      let obstacleIndex = navigationGroups.attr("index");
+      if (navigationGroups.attr("area-type") === "obstacle") {
+        dataAreaIndex = navigationGroups.attr("data-area-index");
+      }
+      const vertices = navigationGroups.selectAll(".vertex")
+        .data(points)
+        .enter()
+        .append("circle")
+        .attr("class", "vertex")
+        .attr("r", 5)
+        .attr("cx", d => xScale(d.x))
+        .attr("cy", d => yScale(d.y))
+        .attr("data-area-index", dataAreaIndex)
+        .attr("data-obstacle-index", obstacleIndex)
+        .attr("data-point-index", (d, i) => i)
+        .attr("area-type", navigationGroups.attr("area-type"))
+        .on("mouseover", function () {
+          d3.select(this).classed("hovered-vertex", true);
+        })
+        .on("mouseout", function () {
+          d3.select(this).classed("hovered-vertex", false);
+        })
+        .call(drag());
+    }
+
+    function insertPoint(x, y, data) {
+      x = xScale.invert(x);
+      y = yScale.invert(y);
+      console.log(x, y);
+      // find the right segment
+      for (let i = 0; i < data.length-1; i++) {
+        const p1 = data[i];
+        const p2 = data[i+1];
+        const d = Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+        const d1 = Math.sqrt(Math.pow(p2.x - x, 2) + Math.pow(p2.y - y, 2));
+        const d2 = Math.sqrt(Math.pow(x - p1.x, 2) + Math.pow(y - p1.y, 2));
+        if (Math.abs(d - (d1 + d2)) < 0.1) {
+          data.splice(i+1, 0, {x: x, y: y});
+          return;
+        }
+      }
+    }
+
+    function renderNavigationArea(navigation_area, idx, className, withVertices = false) {
+      const areaId = className + "-" + idx;
+      // Remove existing navigation group
+      svg.selectAll("#" + areaId).remove();
+
+      const navigationGroups = svg.selectAll("#" + areaId)
+        .data([navigation_area])
+        .enter()
+        .append("g")
+        .attr("id", areaId)
+        .attr("area-type", className)
+        .attr("class", className)
+        .attr("index", idx);
+
+      // Create polygons for each navigation area
+      const polygon = navigationGroups.append("polygon")
+        .attr("class", "polygon polygon-"+className)
+        .attr("points", d => d.points.map(p => `${xScale(p.x)}, ${yScale(p.y)}`).join(" "))
+        .on("click", function (event, d) {
+          if (d3.select(this).classed("selected-polygon")) {
+            if (event.shiftKey) {
+              console.log(event);
+              console.log(d3.pointer(event));
+              const pointer = d3.pointer(event);
+              insertPoint(pointer[0], pointer[1], d.points);
+              renderNavigationArea(d, idx, className, true);
+            }
+          } else {
+            renderNavigationArea(d, idx, className, true);
+          }
+        });
+      d3.selectAll(".polygon").classed("selected-polygon", false);
+      polygon.classed("selected-polygon", withVertices);
+      // Create area vertices
+      if (withVertices) {
+        createVertices(navigationGroups, navigation_area.points);
+      }
+      // Create polygons for obstacles
+      for(let o = 0; o < navigation_area.obstacles.length; o++) {
+        const obstacle = navigation_area.obstacles[o];
+        const obstacleGroupId = className + "-" + idx + "-obstacle-" + o;
+
+        svg.selectAll("#" + obstacleGroupId).remove();
+
+        const obstacleGroup = navigationGroups.append("g")
+          .data([obstacle])
+          .attr("id", obstacleGroupId)
+          .attr("area-type", "obstacle")
+          .attr("data-area-index", idx)
+          .attr("class", "obstacle")
+          .attr("index", o);
+
+        obstacleGroup.append("polygon")
+          .attr("class", "polygon polygon-obstacle")
+          .attr("points", d => d.points.map(p => `${xScale(p.x)}, ${yScale(p.y)}`).join(" "))
+          .on("click", function (event, d) {
+            renderNavigationArea(navigation_area, idx, className, true);
+          });
+        
+        if (withVertices) {
+          createVertices(obstacleGroup, obstacle.points, false);
+        }
+      }
+
+      // Attach keydown event listener to delete vertices with "Del" key
+      d3.select("body").on("keydown", function (event) {
+        if (event.key === "Delete") {
+          const selectedVertex = d3.select(".hovered-vertex");
+          if (!selectedVertex.empty()) {
+            const areaIndex = selectedVertex.attr("data-area-index");
+            const obstacleIndex = selectedVertex.attr("data-obstacle-index");
+            const pointIndex = selectedVertex.attr("data-point-index");
+            const areaType = selectedVertex.attr("area-type");
+            removeVertex(areaType, areaIndex, obstacleIndex, pointIndex);
+          }
+        }
+      });
+
+      function removeVertex(areaType, areaIndex, obstacleIndex, pointIndex) {
+        switch(areaType) {
+          case "navigation-group":
+            navigationAreas.navigation_areas[areaIndex].points.splice(pointIndex, 1);
+            renderNavigationArea(navigationAreas.navigation_areas[areaIndex], areaIndex, "navigation-group", true);
+            break;
+          case "mowing-group":
+            navigationAreas.mowing_areas[areaIndex].points.splice(pointIndex, 1);
+            renderNavigationArea(navigationAreas.mowing_areas[areaIndex], areaIndex, "mowing-group", true);
+            break;
+          case "obstacle":
+            navigationAreas.mowing_areas[areaIndex].obstacles[obstacleIndex].points.splice(pointIndex, 1);
+            renderNavigationArea(navigationAreas.mowing_areas[areaIndex], areaIndex, "mowing-group", true);
+            break;
+        }
+      }
+    }
+
+    function saveNavigationAreas() {
+      // const transformedData = {
+      //   navigation_areas: navigationAreas.navigation_areas.map(area => ({
+      //     name: area.name,
+      //     points: area.points.map(point => ({ x: point.x, y: point.y }))
+      //   }))
+      // };
+
+      fetch('/map', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(navigationAreas)
+      })
+        .then(response => {
+          if (response.ok) {
+            console.log('Navigation areas saved successfully');
+          } else {
+            console.error('Failed to save navigation areas');
+          }
+        })
+        .catch(error => console.error(error));
+    }
+
+    // Attach event listener to the save button
+    const saveButton = document.querySelector('.save-button');
+    saveButton.addEventListener('click', saveNavigationAreas);
+  </script>
+</body>
+</html>
