@@ -6,21 +6,25 @@
   <style>
     .polygon-navigation-group {
       fill: whitesmoke;
+      opacity: 0.7;
       stroke: black;
       stroke-width: 2px;
     }
     .polygon-mowing-group {
       fill: greenyellow;
+      opacity: 0.7;
       stroke: black;
       stroke-width: 2px;
     }
     .polygon-obstacle {
       fill: lightpink;
+      opacity: 0.7;
       stroke: black;
       stroke-width: 2px;
     }
     .vertex {
       fill: white;
+      opacity: 0.7;
       stroke: black;
       stroke-width: 1px;
       cursor: move;
@@ -41,16 +45,18 @@
   <script>
     const mapMargin = 2;
     const vertexRadius = 3;
-    let navigationAreas;
+    let map;
     let domain;
     let xScale, yScale;
     let xAxis, yAxis;
+
     let svg = d3.select("#map")
       .append("svg")
       .attr("viewBox", "0 0 1024 800");
     svg.call(d3.zoom().on("zoom", function (event) {
        updateMapAfterZoom(event);
     }))
+
     svg.on("mousemove", function(event) {
       const pointer = d3.pointer(event);
       const x = xScale.invert(pointer[0]);
@@ -65,17 +71,17 @@
     fetch('/map')
       .then(response => response.json())
       .then(data => {
-        navigationAreas = data;
+        map = data;
 
-        renderData(navigationAreas);
+        renderData();
       })
       .catch(error => console.error(error));
 
-    function computeDomain(navigationAreas) {
-      const minX = d3.min(navigationAreas.mowing_areas, d => d3.min(d.points, p => p.x));
-      const maxX = d3.max(navigationAreas.mowing_areas, d => d3.max(d.points, p => p.x));
-      const minY = d3.min(navigationAreas.mowing_areas, d => d3.min(d.points, p => p.y));
-      const maxY = d3.max(navigationAreas.mowing_areas, d => d3.max(d.points, p => p.y));
+    function computeDomain() {
+      const minX = d3.min(map.mowing_areas, d => d3.min(d.points, p => p.x));
+      const maxX = d3.max(map.mowing_areas, d => d3.max(d.points, p => p.x));
+      const minY = d3.min(map.mowing_areas, d => d3.min(d.points, p => p.y));
+      const maxY = d3.max(map.mowing_areas, d => d3.max(d.points, p => p.y));
       return {
         minX: minX,
         maxX: maxX,
@@ -84,12 +90,12 @@
       }
     }
 
-    function renderData(navigationAreas) {
+    function renderData() {
       // Remove existing navigation groups
       svg.selectAll(".navigation-group").remove();
       svg.selectAll(".mowing-group").remove();
 
-      domain = computeDomain(navigationAreas);
+      domain = computeDomain();
 
       xScale = d3.scaleLinear()
       .domain([domain.minX - mapMargin, domain.maxX + mapMargin])
@@ -115,8 +121,8 @@
         .attr("transform", "translate(" + xScale(0) + ", 0)") // Position the x-axis at the bottom
         .call(yAxis);
 
-      renderAreas(navigationAreas.navigation_areas, "navigation-group");
-      renderAreas(navigationAreas.mowing_areas, "mowing-group");
+      renderAreas(map.navigation_areas, "navigation-group");
+      renderAreas(map.mowing_areas, "mowing-group");
     }
     function renderAreas(navigation_areas, className) {
 
@@ -288,16 +294,16 @@
       function removeVertex(areaType, areaIndex, obstacleIndex, pointIndex) {
         switch(areaType) {
           case "navigation-group":
-            navigationAreas.navigation_areas[areaIndex].points.splice(pointIndex, 1);
-            renderNavigationArea(navigationAreas.navigation_areas[areaIndex], areaIndex, "navigation-group", true);
+            map.navigation_areas[areaIndex].points.splice(pointIndex, 1);
+            renderNavigationArea(map.navigation_areas[areaIndex], areaIndex, "navigation-group", true);
             break;
           case "mowing-group":
-            navigationAreas.mowing_areas[areaIndex].points.splice(pointIndex, 1);
-            renderNavigationArea(navigationAreas.mowing_areas[areaIndex], areaIndex, "mowing-group", true);
+            map.mowing_areas[areaIndex].points.splice(pointIndex, 1);
+            renderNavigationArea(map.mowing_areas[areaIndex], areaIndex, "mowing-group", true);
             break;
           case "obstacle":
-            navigationAreas.mowing_areas[areaIndex].obstacles[obstacleIndex].points.splice(pointIndex, 1);
-            renderNavigationArea(navigationAreas.mowing_areas[areaIndex], areaIndex, "mowing-group", true);
+            map.mowing_areas[areaIndex].obstacles[obstacleIndex].points.splice(pointIndex, 1);
+            renderNavigationArea(map.mowing_areas[areaIndex], areaIndex, "mowing-group", true);
             break;
         }
       }
@@ -316,7 +322,7 @@
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(navigationAreas)
+        body: JSON.stringify(map)
       })
         .then(response => {
           if (response.ok) {
