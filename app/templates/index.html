@@ -40,6 +40,7 @@
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <script>
     const mapMargin = 2;
+    const vertexRadius = 3;
     let navigationAreas;
     let domain;
     let xScale, yScale;
@@ -91,7 +92,6 @@
       svg.selectAll(".mowing-group").remove();
 
       domain = computeDomain(navigationAreas);
-      console.log(domain);
 
       xScale = d3.scaleLinear()
       .domain([domain.minX - mapMargin, domain.maxX + mapMargin])
@@ -175,7 +175,7 @@
         .enter()
         .append("circle")
         .attr("class", "vertex")
-        .attr("r", 5)
+        .attr("r", vertexRadius)
         .attr("cx", d => xScale(d.x))
         .attr("cy", d => yScale(d.y))
         .attr("data-area-index", dataAreaIndex)
