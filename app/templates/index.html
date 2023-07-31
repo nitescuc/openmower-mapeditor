@@ -60,8 +60,6 @@
 
     function updateMapAfterZoom(event) {
       svg.attr("transform", event.transform);
-      svg.select(".x-axis").call(xAxis.scale(event.transform.rescaleX(xScale)));
-      svg.select(".y-axis").call(yAxis.scale(event.transform.rescaleY(yScale)));
     }
 
     fetch('/map')
