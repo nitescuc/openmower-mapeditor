@@ -42,6 +42,8 @@
   <div id="map"></div>
 
   <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/roslib@1/build/roslib.min.js"></script>
+  <script src="js/ros.js"></script>
   <script>
     const mapMargin = 2;
     const vertexRadius = 3;
@@ -99,7 +101,7 @@
 
       xScale = d3.scaleLinear()
       .domain([domain.minX - mapMargin, domain.maxX + mapMargin])
-      .range([0, 1024]);
+      .range([0, 800]);
 
       yScale = d3.scaleLinear()
         .domain([domain.minY - mapMargin, domain.maxY + mapMargin])
@@ -234,8 +236,6 @@
         .on("click", function (event, d) {
           if (d3.select(this).classed("selected-polygon")) {
             if (event.shiftKey) {
-              console.log(event);
-              console.log(d3.pointer(event));
               const pointer = d3.pointer(event);
               insertPoint(pointer[0], pointer[1], d.points);
               renderNavigationArea(d, idx, className, true);
@@ -307,6 +307,13 @@
             break;
         }
       }
+
+      // display mow path
+      getMowPath(navigation_area.points, navigation_area.obstacles, {}, function(result) {
+        const mowPath = navigationGroups.append("polyline")
+          .attr("class", "mow-path")
+          .attr("points", result.map(p => `${xScale(p.x)}, ${yScale(p.y)}`).join(" "));
+      });
     }
 
     function saveNavigationAreas() {
