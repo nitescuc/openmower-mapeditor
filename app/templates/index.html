@@ -35,13 +35,23 @@
     .save-button {
       margin-top: 10px;
     }
+    .mow-path {
+      fill: none;
+      stroke: red;
+      opacity: 0.7;
+      stroke-width: 2px;
+    }
   </style>
 </head>
 <body>
-  <div><button class="save-button">Save Navigation Areas</button><span id="pos_label"></span></div>
+  <div><button class="save-button">Save</button>
+    <span style="padding:20px"><input type="number" id="angle_input" placeholder="Angle" style="width: 40px;"><button id="simulate">Slice</button></span>
+    <span id="pos_label" style="padding:20px"></span></div>
   <div id="map"></div>
 
   <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/roslib@1/build/roslib.min.js"></script>
+  <script src="js/ros.js"></script>
   <script>
     const mapMargin = 2;
     const vertexRadius = 3;
@@ -234,8 +244,6 @@
         .on("click", function (event, d) {
           if (d3.select(this).classed("selected-polygon")) {
             if (event.shiftKey) {
-              console.log(event);
-              console.log(d3.pointer(event));
               const pointer = d3.pointer(event);
               insertPoint(pointer[0], pointer[1], d.points);
               renderNavigationArea(d, idx, className, true);
@@ -334,9 +342,30 @@
         .catch(error => console.error(error));
     }
 
+    function simulate() {
+      const angle = parseInt(document.querySelector('#angle_input').value) * Math.PI / 180;
+      // display mow path
+      for (let i = 0; i < map.mowing_areas.length; i++) {
+        const navigation_area = map.mowing_areas[i];
+        const navigationGroups = svg.selectAll("#mowing-group-" + i);
+        navigationGroups.selectAll(".mow-path").remove();
+        getMowPath(navigation_area.points, navigation_area.obstacles, {
+          angle
+        }, function(result) {
+          for (let path of result.paths) {
+            navigationGroups.append("polyline")
+              .attr("class", "mow-path mow-path-"+(path.is_outline ? "outline" : "inner"))
+              .attr("points", path.path.poses.map(p => `${xScale(p.pose.position.x)}, ${yScale(p.pose.position.y)}`).join(" "));
+          }
+        });
+      }
+    }
     // Attach event listener to the save button
     const saveButton = document.querySelector('.save-button');
     saveButton.addEventListener('click', saveNavigationAreas);
+
+    const simulateButton = document.querySelector('#simulate');
+    simulateButton.addEventListener('click', simulate);
   </script>
 </body>
 </html>

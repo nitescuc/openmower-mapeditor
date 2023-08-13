@@ -1,0 +1,48 @@
+var ros = new ROSLIB.Ros();
+  // If there is an error on the backend, an 'error' emit will be emitted.
+  ros.on('error', function(error) {
+    console.log(error);
+  });
+
+  // Find out exactly when we made a connection.
+  ros.on('connection', function() {
+    console.log('Connection made!');
+  });
+
+  ros.on('close', function() {
+    console.log('Connection closed.');
+  });
+
+ros.connect('ws://mowgli.local:9090');
+
+function getMowPath(area, obstacles, config, cb) {
+    if (!ros.isConnected) {
+        return;
+    }
+    var slicerService = new ROSLIB.Service({
+        ros: ros,
+        name: 'slic3r_coverage_planner/plan_path',
+        serviceType: 'slic3r_coverage_planner/PlanPath'
+    });
+    var request = new ROSLIB.ServiceRequest({
+        angle: config.angle,
+        outline_count: 4,
+        outline: {points: area},
+        holes: obstacles,
+        fill_type: 0,
+        outer_offset: 0.2,
+        distance: 0.13
+    });
+    if (slicerService) {
+        slicerService.callService(request, cb, console.error);
+    }
+}
+
+function startPositionListener(cb) {
+    var listener = new ROSLIB.Topic({
+        ros: ros,
+        name: 'xbot_positioning/xb_pose',
+        messageType: 'xbot_msgs/AbsolutPose'
+    });
+    listener.subscribe(cb);
+}

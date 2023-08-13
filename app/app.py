@@ -13,6 +13,10 @@ app = Flask(__name__)
 def get_index():
     return render_template("index.html")
 
+@app.route("/js/ros.js", methods=["GET"])
+def get_js():
+    return render_template("ros.js")
+
 
 @app.route("/map", methods=["GET"])
 def get_map():
@@ -21,6 +25,7 @@ def get_map():
     bag = rosbag.Bag(map_path, "r")
     message = {}
     for topic, msg, t in bag.read_messages():
+#        print(topic, msg)
         if "_mower_map__MapArea" in str(type(msg)):
             # Process messages as needed
             if topic not in message:
@@ -45,6 +50,20 @@ def get_map():
                     ),
                 }
             )
+        if topic == "docking_point":
+            message["docking_point"] = {
+                "position": {
+                    "x": msg.position.x,
+                    "y": msg.position.y,
+                    "z": msg.position.z,
+                },
+                # "orientation": {
+                #     "x": msg.orientation.x,
+                #     "y": msg.orientation.y,
+                #     "z": msg.orientation.z,
+                #     "w": msg.orientation.w,
+                # },
+            }
     bag.close()
 
     return json.dumps(message)
@@ -78,6 +97,15 @@ def post_map():
                 msg.obstacles[o_idx].points = to_Point32_list(
                     data["obstacles"][o_idx]["points"]
                 )
+        if topic == "docking_point":
+            data = json_data[topic]
+            msg.position.x = data["position"]["x"]
+            msg.position.y = data["position"]["y"]
+            msg.position.z = data["position"]["z"]
+            # msg.orientation.x = data["orientation"]["x"]
+            # msg.orientation.y = data["orientation"]["y"]
+            # msg.orientation.z = data["orientation"]["z"]
+            # msg.orientation.w = data["orientation"]["w"]
 
         out_map_bag.write(topic, msg, t)
     out_map_bag.close()
