@@ -25,7 +25,7 @@ function getMowPath(area, obstacles, config, cb) {
         serviceType: 'slic3r_coverage_planner/PlanPath'
     });
     var request = new ROSLIB.ServiceRequest({
-        angle: 0,
+        angle: config.angle,
         outline_count: 4,
         outline: {points: area},
         holes: obstacles,

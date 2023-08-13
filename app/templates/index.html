@@ -35,10 +35,18 @@
     .save-button {
       margin-top: 10px;
     }
+    .mow-path {
+      fill: none;
+      stroke: red;
+      opacity: 0.7;
+      stroke-width: 2px;
+    }
   </style>
 </head>
 <body>
-  <div><button class="save-button">Save Navigation Areas</button><span id="pos_label"></span></div>
+  <div><button class="save-button">Save</button>
+    <span style="padding:20px"><input type="number" id="angle_input" placeholder="Angle" style="width: 40px;"><button id="simulate">Slice</button></span>
+    <span id="pos_label" style="padding:20px"></span></div>
   <div id="map"></div>
 
   <script src="https://d3js.org/d3.v7.min.js"></script>
@@ -307,13 +315,6 @@
             break;
         }
       }
-
-      // display mow path
-      getMowPath(navigation_area.points, navigation_area.obstacles, {}, function(result) {
-        const mowPath = navigationGroups.append("polyline")
-          .attr("class", "mow-path")
-          .attr("points", result.map(p => `${xScale(p.x)}, ${yScale(p.y)}`).join(" "));
-      });
     }
 
     function saveNavigationAreas() {
@@ -341,9 +342,30 @@
         .catch(error => console.error(error));
     }
 
+    function simulate() {
+      const angle = parseInt(document.querySelector('#angle_input').value) * Math.PI / 180;
+      // display mow path
+      for (let i = 0; i < map.mowing_areas.length; i++) {
+        const navigation_area = map.mowing_areas[i];
+        const navigationGroups = svg.selectAll("#mowing-group-" + i);
+        navigationGroups.selectAll(".mow-path").remove();
+        getMowPath(navigation_area.points, navigation_area.obstacles, {
+          angle
+        }, function(result) {
+          for (let path of result.paths) {
+            navigationGroups.append("polyline")
+              .attr("class", "mow-path mow-path-"+(path.is_outline ? "outline" : "inner"))
+              .attr("points", path.path.poses.map(p => `${xScale(p.pose.position.x)}, ${yScale(p.pose.position.y)}`).join(" "));
+          }
+        });
+      }
+    }
     // Attach event listener to the save button
     const saveButton = document.querySelector('.save-button');
     saveButton.addEventListener('click', saveNavigationAreas);
+
+    const simulateButton = document.querySelector('#simulate');
+    simulateButton.addEventListener('click', simulate);
   </script>
 </body>
 </html>
