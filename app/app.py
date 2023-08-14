@@ -5,6 +5,7 @@ from geometry_msgs.msg import Point32
 import datetime
 import json
 import os
+from markupsafe import escape
 
 app = Flask(__name__)
 
@@ -13,9 +14,13 @@ app = Flask(__name__)
 def get_index():
     return render_template("index.html")
 
-@app.route("/js/ros.js", methods=["GET"])
-def get_js():
-    return render_template("ros.js")
+@app.route("/js/<filename>", methods=["GET"])
+def get_ros_js(filename):
+    filename = escape(filename)
+    if os.path.dirname(os.path.abspath(filename)) == os.path.dirname(os.path.abspath(__file__)):
+        return render_template(filename)
+    else:
+        return "Not found", 404
 
 
 @app.route("/map", methods=["GET"])
