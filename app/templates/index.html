@@ -270,6 +270,7 @@
       const polygon = navigationGroups.append("polygon")
         .attr("class", "polygon polygon-"+className)
         .attr("points", d => d.points.map(p => `${xScale(p.x)}, ${yScale(p.y)}`).join(" "))
+        .on("contextmenu", contextMenu(getMenuArea({ map, areaIndex: idx, className, xScale, yScale, area: navigation_area })))
         .on("click", function (event, d) {
           if (d3.select(this).classed("selected-polygon")) {
             if (event.shiftKey) {
@@ -306,7 +307,11 @@
           .attr("class", "polygon polygon-obstacle")
           .attr("points", d => d.points.map(p => `${xScale(p.x)}, ${yScale(p.y)}`).join(" "))
           .on("click", function (event, d) {
-            renderNavigationArea(navigation_area, idx, className, true);
+              if (event.shiftKey) {
+                const pointer = d3.pointer(event);
+                insertPoint(pointer[0], pointer[1], d.points);
+              }
+              renderNavigationArea(navigation_area, idx, className, true);
           });
         
         if (withVertices) {

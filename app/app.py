@@ -1,7 +1,8 @@
 import sys
 from flask import Flask, request, render_template
 import rosbag
-from geometry_msgs.msg import Point32
+from geometry_msgs.msg import Point32, Polygon
+#from _MapArea import MapArea
 import datetime
 import json
 import os
@@ -98,10 +99,13 @@ def post_map():
                 data = json_data[topic][nav_area_idx]
                 nav_area_idx += 1
             msg.area.points = to_Point32_list(data["points"])
-            for o_idx in range(len(msg.obstacles)):
-                msg.obstacles[o_idx].points = to_Point32_list(
-                    data["obstacles"][o_idx]["points"]
-                )
+            msg.obstacles = []
+            for obstacle in data["obstacles"]:
+                msg.obstacles.append(Polygon(to_Point32_list(obstacle["points"])))
+            # for o_idx in range(len(msg.obstacles)):
+            #     msg.obstacles[o_idx].points = to_Point32_list(
+            #         data["obstacles"][o_idx]["points"]
+            #     )
         if topic == "docking_point":
             data = json_data[topic]
             msg.position.x = data["position"]["x"]

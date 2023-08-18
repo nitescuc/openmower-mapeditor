@@ -23,7 +23,7 @@ function contextMenu(menu) {
 				return d.title;
 			})
 			.on('click', function(event, d, i) {
-				d.action(elm, data, index);
+				d.action(elm, data, event);
 				d3.select('.d3-context-menu').style('display', 'none');
 			});
 
@@ -41,7 +41,7 @@ function getMenuVertex(context) {
     const map = context.map;
     return [{
       title: 'Set as first point',
-      action: function(elm, d, i) {
+      action: function(elm, d, event) {
         elm = d3.select(elm);
         const areaIndex = elm.attr("data-area-index");
         const areaType = elm.attr("area-type");
@@ -63,4 +63,24 @@ function getMenuVertex(context) {
         renderNavigationArea((areaType === "obstacle" ? map.mowing_areas[areaIndex] : parentObject), areaIndex, areaType, true);
       }
     }]
+}
+
+function getMenuArea(context) {
+	const map = context.map;
+	const area = context.area;
+	return [{
+		title: 'Add obstacle',
+		action: function(elm, d, event) {
+			// elm = d3.select(elm);
+			const pointer = d3.pointer(event, d3.select("#" + context.className + "-" + context.areaIndex).node());			
+			const x = xScale.invert(pointer[0]);
+			const y = yScale.invert(pointer[1]);
+			const points = [];
+			for (let i = 0; i < 8; i++) {
+				points.push({x: x + 0.5 * Math.cos(i * Math.PI / 4), y: y + 0.5 * Math.sin(i * Math.PI / 4)});
+			}
+			area.obstacles.push({points: points});
+			renderNavigationArea(area, context.areaIndex, context.className, true);
+		}
+	}]
 }
