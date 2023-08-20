@@ -13,8 +13,6 @@ var ros = new ROSLIB.Ros();
     console.log('Connection closed.');
   });
 
-ros.connect('ws://mowgli.local:9090');
-
 function getMowPath(area, obstacles, config, cb) {
     if (!ros.isConnected) {
         return;

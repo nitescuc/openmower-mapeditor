@@ -88,6 +88,8 @@
     let xScale, yScale;
     let xAxis, yAxis;
 
+    ros.connect('ws://{{ rosbridge_host }}:{{ rosbridge_port }}');
+
     let svg = d3.select("#map")
       .append("svg")
       .attr("viewBox", "0 0 1024 800");

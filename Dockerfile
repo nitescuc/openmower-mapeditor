@@ -9,4 +9,4 @@ RUN pip3 install -r requirements.txt
 
 ADD app /usr/src/app
 
-CMD ["python3", "app.py", "/map/map.bag"]
+CMD ["python3", "app.py", "--map=/map/map.bag"]

@@ -7,13 +7,39 @@ import datetime
 import json
 import os
 from markupsafe import escape
+import argparse
+
+ROSBRIDGE_HOST = os.environ.get("ROSBRIDGE_HOST", "localhost")
+ROSBRIDGE_PORT = os.environ.get("ROSBRIDGE_PORT", "9090")
+
+parser = argparse.ArgumentParser(description="OpenMower map editor")
+parser.add_argument(
+    "--map",
+    dest="map_path",
+    default="data/map.bag",
+    help="Path to map.bag file",
+)
+parser.add_argument(
+    "--rosbridge-host",
+    dest="rosbridge_host",
+    default=ROSBRIDGE_HOST,
+    help="ROS bridge host",
+)
+parser.add_argument(
+    "--rosbridge-port",
+    dest="rosbridge_port",
+    default=ROSBRIDGE_PORT,
+    help="ROS bridge port",
+)
+
+args = parser.parse_args()
 
 app = Flask(__name__)
 
 
 @app.route("/", methods=["GET"])
 def get_index():
-    return render_template("index.html")
+    return render_template("index.html", rosbridge_host=args.rosbridge_host, rosbridge_port=args.rosbridge_port)
 
 @app.route("/js/<filename>", methods=["GET"])
 def get_ros_js(filename):
@@ -26,7 +52,7 @@ def get_ros_js(filename):
 
 @app.route("/map", methods=["GET"])
 def get_map():
-    map_path = app.config["map_path"]
+    map_path = args.map_path
     # Deserialize map.bag using ROS bag deserializer
     bag = rosbag.Bag(map_path, "r")
     message = {}
@@ -81,7 +107,7 @@ def to_Point32_list(points):
 
 @app.route("/map", methods=["POST"])
 def post_map():
-    map_path = app.config["map_path"]
+    map_path = args.map_path
     out_path = os.path.join(os.path.dirname(map_path), "out.bag")
     # Rename map.bag to map.old
     json_data = request.get_json()
@@ -133,5 +159,4 @@ def post_map():
 
 
 if __name__ == "__main__":
-    app.config["map_path"] = sys.argv[1] if len(sys.argv) > 1 else "map.bag"
     app.run(host="0.0.0.0", port=5000)
