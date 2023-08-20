@@ -82,5 +82,11 @@ function getMenuArea(context) {
 			area.obstacles.push({points: points});
 			renderNavigationArea(area, context.areaIndex, context.className, true);
 		}
+	}, {
+		title: 'Reverse',
+		action: function(elm, d, event) {
+			area.points.reverse();
+			renderNavigationArea(area, context.areaIndex, context.className, true);
+		}
 	}]
 }
