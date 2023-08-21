@@ -11,4 +11,4 @@ ADD app /usr/src/app
 
 EXPOSE 5000
 
-CMD ["python3", "app.py", "/map/map.bag"]
+CMD ["python3", "app.py", "--map=/map/map.bag"]
