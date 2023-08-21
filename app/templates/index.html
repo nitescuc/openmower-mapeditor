@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="utf-8">
   <title>Navigation Areas</title>
@@ -10,18 +11,21 @@
       stroke: black;
       stroke-width: 2px;
     }
+
     .polygon-mowing-group {
       fill: greenyellow;
       opacity: 0.7;
       stroke: black;
       stroke-width: 2px;
     }
+
     .polygon-obstacle {
       fill: lightpink;
       opacity: 0.7;
       stroke: black;
       stroke-width: 2px;
     }
+
     .vertex {
       fill: white;
       opacity: 0.7;
@@ -29,9 +33,11 @@
       stroke-width: 1px;
       cursor: move;
     }
+
     .hovered-vertex {
       fill: lightblue;
     }
+
     .save-button {
       margin-top: 10px;
     }
@@ -70,6 +76,7 @@
     }
   </style>
 </head>
+
 <body>
   <div><button class="save-button">Save</button>
     <span style="padding:20px"><input type="number" id="angle_input" placeholder="Angle" style="width: 40px;"><button id="simulate">Slice</button></span>
@@ -94,10 +101,10 @@
       .append("svg")
       .attr("viewBox", "0 0 1024 800");
     svg.call(d3.zoom().on("zoom", function (event) {
-       updateMapAfterZoom(event);
+      updateMapAfterZoom(event);
     }))
 
-    svg.on("mousemove", function(event) {
+    svg.on("mousemove", function (event) {
       const pointer = d3.pointer(event);
       const x = xScale.invert(pointer[0]);
       const y = yScale.invert(pointer[1]);
@@ -138,8 +145,8 @@
       domain = computeDomain();
 
       xScale = d3.scaleLinear()
-      .domain([domain.minX - mapMargin, domain.maxX + mapMargin])
-      .range([0, 800]);
+        .domain([domain.minX - mapMargin, domain.maxX + mapMargin])
+        .range([0, 800]);
 
       yScale = d3.scaleLinear()
         .domain([domain.minY - mapMargin, domain.maxY + mapMargin])
@@ -161,14 +168,18 @@
         .attr("transform", "translate(" + xScale(0) + ", 0)") // Position the x-axis at the bottom
         .call(yAxis);
 
-      renderAreas(map.navigation_areas, "navigation-group");
-      renderAreas(map.mowing_areas, "mowing-group");
+      if (map.navigation_areas) {
+        renderAreas(map.navigation_areas, "navigation-group");
+      }
+      if (map.mowing_areas) {
+        renderAreas(map.mowing_areas, "mowing-group");
+      }
     }
     function renderAreas(navigation_areas, className) {
 
-        for (let idx = 0; idx < navigation_areas.length; idx++) {
-          renderNavigationArea(navigation_areas[idx], idx, className);
-        }
+      for (let idx = 0; idx < navigation_areas.length; idx++) {
+        renderNavigationArea(navigation_areas[idx], idx, className);
+      }
     }
 
     // Update the polygon's points when a vertex is moved
@@ -241,14 +252,14 @@
       y = yScale.invert(y);
       console.log(x, y);
       // find the right segment
-      for (let i = 0; i < data.length-1; i++) {
+      for (let i = 0; i < data.length - 1; i++) {
         const p1 = data[i];
-        const p2 = data[i+1];
+        const p2 = data[i + 1];
         const d = Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
         const d1 = Math.sqrt(Math.pow(p2.x - x, 2) + Math.pow(p2.y - y, 2));
         const d2 = Math.sqrt(Math.pow(x - p1.x, 2) + Math.pow(y - p1.y, 2));
         if (Math.abs(d - (d1 + d2)) < 0.1) {
-          data.splice(i+1, 0, {x: x, y: y});
+          data.splice(i + 1, 0, { x: x, y: y });
           return;
         }
       }
@@ -270,7 +281,7 @@
 
       // Create polygons for each navigation area
       const polygon = navigationGroups.append("polygon")
-        .attr("class", "polygon polygon-"+className)
+        .attr("class", "polygon polygon-" + className)
         .attr("points", d => d.points.map(p => `${xScale(p.x)}, ${yScale(p.y)}`).join(" "))
         .on("contextmenu", contextMenu(getMenuArea({ map, areaIndex: idx, className, xScale, yScale, area: navigation_area })))
         .on("click", function (event, d) {
@@ -291,7 +302,7 @@
         createVertices(navigationGroups, navigation_area.points);
       }
       // Create polygons for obstacles
-      for(let o = 0; o < navigation_area.obstacles.length; o++) {
+      for (let o = 0; o < navigation_area.obstacles.length; o++) {
         const obstacle = navigation_area.obstacles[o];
         const obstacleGroupId = className + "-" + idx + "-obstacle-" + o;
 
@@ -315,7 +326,7 @@
               }
               renderNavigationArea(navigation_area, idx, className, true);
           });
-        
+
         if (withVertices) {
           createVertices(obstacleGroup, obstacle.points, false);
         }
@@ -336,7 +347,7 @@
       });
 
       function removeVertex(areaType, areaIndex, obstacleIndex, pointIndex) {
-        switch(areaType) {
+        switch (areaType) {
           case "navigation-group":
             map.navigation_areas[areaIndex].points.splice(pointIndex, 1);
             renderNavigationArea(map.navigation_areas[areaIndex], areaIndex, "navigation-group", true);
@@ -404,4 +415,5 @@
     simulateButton.addEventListener('click', simulate);
   </script>
 </body>
+
 </html>
