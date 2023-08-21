@@ -41,14 +41,52 @@
     .save-button {
       margin-top: 10px;
     }
+    .mow-path {
+      fill: none;
+      stroke: red;
+      opacity: 0.7;
+      stroke-width: 2px;
+    }
+    .d3-context-menu {
+      position: absolute;
+      display: none;
+      background-color: #f2f2f2;
+      border-radius: 4px;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      min-width: 150px;
+      border: 1px solid #d4d4d4;
+      z-index:1200;
+    }
+
+    .d3-context-menu ul {
+      list-style-type: none;
+      margin: 4px 0px;
+      padding: 0px;
+      cursor: default;
+    }
+
+    .d3-context-menu ul li {
+      padding: 4px 16px;
+    }
+
+    .d3-context-menu ul li:hover {
+      background-color: #4677f8;
+      color: #fefefe;
+    }
   </style>
 </head>
 
 <body>
-  <div><button class="save-button">Save Navigation Areas</button><span id="pos_label"></span></div>
+  <div><button class="save-button">Save</button>
+    <span style="padding:20px"><input type="number" id="angle_input" placeholder="Angle" style="width: 40px;"><button id="simulate">Slice</button></span>
+    <span id="pos_label" style="padding:20px"></span></div>
   <div id="map"></div>
 
   <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/roslib@1/build/roslib.min.js"></script>
+  <script src="js/ros.js"></script>
+  <script src="js/contextMenu.js"></script>
   <script>
     const mapMargin = 2;
     const vertexRadius = 3;
@@ -56,6 +94,8 @@
     let domain;
     let xScale, yScale;
     let xAxis, yAxis;
+
+    ros.connect('ws://{{ rosbridge_host }}:{{ rosbridge_port }}');
 
     let svg = d3.select("#map")
       .append("svg")
@@ -106,7 +146,7 @@
 
       xScale = d3.scaleLinear()
         .domain([domain.minX - mapMargin, domain.maxX + mapMargin])
-        .range([0, 1024]);
+        .range([0, 800]);
 
       yScale = d3.scaleLinear()
         .domain([domain.minY - mapMargin, domain.maxY + mapMargin])
@@ -203,6 +243,7 @@
         .on("mouseout", function () {
           d3.select(this).classed("hovered-vertex", false);
         })
+        .on("contextmenu", contextMenu(getMenuVertex({ map })))
         .call(drag());
     }
 
@@ -242,11 +283,10 @@
       const polygon = navigationGroups.append("polygon")
         .attr("class", "polygon polygon-" + className)
         .attr("points", d => d.points.map(p => `${xScale(p.x)}, ${yScale(p.y)}`).join(" "))
+        .on("contextmenu", contextMenu(getMenuArea({ map, areaIndex: idx, className, xScale, yScale, area: navigation_area })))
         .on("click", function (event, d) {
           if (d3.select(this).classed("selected-polygon")) {
             if (event.shiftKey) {
-              console.log(event);
-              console.log(d3.pointer(event));
               const pointer = d3.pointer(event);
               insertPoint(pointer[0], pointer[1], d.points);
               renderNavigationArea(d, idx, className, true);
@@ -280,7 +320,11 @@
           .attr("class", "polygon polygon-obstacle")
           .attr("points", d => d.points.map(p => `${xScale(p.x)}, ${yScale(p.y)}`).join(" "))
           .on("click", function (event, d) {
-            renderNavigationArea(navigation_area, idx, className, true);
+              if (event.shiftKey) {
+                const pointer = d3.pointer(event);
+                insertPoint(pointer[0], pointer[1], d.points);
+              }
+              renderNavigationArea(navigation_area, idx, className, true);
           });
 
         if (withVertices) {
@@ -345,9 +389,30 @@
         .catch(error => console.error(error));
     }
 
+    function simulate() {
+      const angle = parseInt(document.querySelector('#angle_input').value) * Math.PI / 180;
+      // display mow path
+      for (let i = 0; i < map.mowing_areas.length; i++) {
+        const navigation_area = map.mowing_areas[i];
+        const navigationGroups = svg.selectAll("#mowing-group-" + i);
+        navigationGroups.selectAll(".mow-path").remove();
+        getMowPath(navigation_area.points, navigation_area.obstacles, {
+          angle
+        }, function(result) {
+          for (let path of result.paths) {
+            navigationGroups.append("polyline")
+              .attr("class", "mow-path mow-path-"+(path.is_outline ? "outline" : "inner"))
+              .attr("points", path.path.poses.map(p => `${xScale(p.pose.position.x)}, ${yScale(p.pose.position.y)}`).join(" "));
+          }
+        });
+      }
+    }
     // Attach event listener to the save button
     const saveButton = document.querySelector('.save-button');
     saveButton.addEventListener('click', saveNavigationAreas);
+
+    const simulateButton = document.querySelector('#simulate');
+    simulateButton.addEventListener('click', simulate);
   </script>
 </body>
 
