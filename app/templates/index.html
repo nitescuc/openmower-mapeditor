@@ -78,7 +78,6 @@
 </head>
 <body>
   <div><button class="save-button">Save</button>
-    <span style="padding:20px"><input type="number" id="angle_input" placeholder="Angle" style="width: 40px;"><button id="simulate">Slice</button></span>
     <span id="pos_label" style="padding:20px"></span></div>
   <div id="map"></div>
 
@@ -278,7 +277,7 @@
       const polygon = navigationGroups.append("polygon")
         .attr("class", "polygon" + (navigation_area._deleted ? " polygon-deleted" : " polygon-" + className))
         .attr("points", d => d.points.map(p => `${xScale(p.x)}, ${yScale(p.y)}`).join(" "))
-        .on("contextmenu", contextMenu(getMenuArea({ map, areaIndex: idx, className, xScale, yScale, area: navigation_area })))
+        .on("contextmenu", contextMenu(getMenuArea({ map, areaIndex: idx, className, xScale, yScale, area: navigation_area, group: navigationGroups })))
         .on("click", function (event, d) {
           if (d3.select(this).classed("selected-polygon")) {
             if (event.shiftKey) {

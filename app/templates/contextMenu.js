@@ -82,17 +82,29 @@ function getMenuArea(context) {
 			area.obstacles.push({points: points});
 			renderNavigationArea(area, context.areaIndex, context.className, true);
 		}
-	}, {
-		title: 'Reverse',
-		action: function(elm, d, event) {
-			area.points.reverse();
-			renderNavigationArea(area, context.areaIndex, context.className, true);
-		}
+	// }, {
+	// 	title: 'Reverse',
+	// 	action: function(elm, d, event) {
+	// 		area.points.reverse();
+	// 		renderNavigationArea(area, context.areaIndex, context.className, true);
+	// 	}
 	}, {
 		title: (area._deleted ? 'Restore': 'Delete'),
 		action: function(elm, d, event) {
 			area._deleted = (area._deleted ? false : true);
 			renderNavigationArea(area, context.areaIndex, context.className, true);
+		}
+	}, {
+		title: 'Slice',
+		action: function(elm, d, event) {
+			context.group.selectAll(".mow-path").remove();
+			getMowPath(area.points, area.obstacles, {}, function(result) {
+			  for (let path of result.paths) {
+				context.group.append("polyline")
+				  .attr("class", "mow-path mow-path-"+(path.is_outline ? "outline" : "inner"))
+				  .attr("points", path.path.poses.map(p => `${xScale(p.pose.position.x)}, ${yScale(p.pose.position.y)}`).join(" "));
+			  }
+			});
 		}
 	}]
 }
