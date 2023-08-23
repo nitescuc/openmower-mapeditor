@@ -16,6 +16,12 @@
       stroke: black;
       stroke-width: 2px;
     }
+    .polygon-deleted {
+      fill: gray;
+      opacity: 0.7;
+      stroke: black;
+      stroke-width: 2px;
+    }
     .polygon-obstacle {
       fill: lightpink;
       opacity: 0.7;
@@ -270,7 +276,7 @@
 
       // Create polygons for each navigation area
       const polygon = navigationGroups.append("polygon")
-        .attr("class", "polygon polygon-"+className)
+        .attr("class", "polygon" + (navigation_area._deleted ? " polygon-deleted" : " polygon-" + className))
         .attr("points", d => d.points.map(p => `${xScale(p.x)}, ${yScale(p.y)}`).join(" "))
         .on("contextmenu", contextMenu(getMenuArea({ map, areaIndex: idx, className, xScale, yScale, area: navigation_area })))
         .on("click", function (event, d) {

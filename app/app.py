@@ -117,6 +117,7 @@ def post_map():
     org_map_bag = rosbag.Bag(map_path, "r")
     out_map_bag = rosbag.Bag(out_path, "w")
     for topic, msg, t in org_map_bag.read_messages():
+        deleted = False
         if "_mower_map__MapArea" in str(type(msg)):
             if topic == "mowing_areas":
                 data = json_data[topic][mow_area_idx]
@@ -132,6 +133,8 @@ def post_map():
             #     msg.obstacles[o_idx].points = to_Point32_list(
             #         data["obstacles"][o_idx]["points"]
             #     )
+            if data.get("_deleted", False):
+                deleted = True
         if topic == "docking_point":
             data = json_data[topic]
             msg.position.x = data["position"]["x"]
@@ -142,7 +145,8 @@ def post_map():
             # msg.orientation.z = data["orientation"]["z"]
             # msg.orientation.w = data["orientation"]["w"]
 
-        out_map_bag.write(topic, msg, t)
+        if not deleted:
+            out_map_bag.write(topic, msg, t)
     out_map_bag.close()
 
     if os.path.exists(map_path):

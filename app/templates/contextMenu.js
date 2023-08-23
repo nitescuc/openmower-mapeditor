@@ -88,5 +88,11 @@ function getMenuArea(context) {
 			area.points.reverse();
 			renderNavigationArea(area, context.areaIndex, context.className, true);
 		}
+	}, {
+		title: (area._deleted ? 'Restore': 'Delete'),
+		action: function(elm, d, event) {
+			area._deleted = (area._deleted ? false : true);
+			renderNavigationArea(area, context.areaIndex, context.className, true);
+		}
 	}]
 }
