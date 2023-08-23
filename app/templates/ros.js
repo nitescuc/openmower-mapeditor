@@ -32,7 +32,7 @@ function getMowPath(area, obstacles, config, cb) {
         outline: {points: area},
         holes: obstacles,
         fill_type: 0,
-        outer_offset: 0.2,
+        outer_offset: 0.3,
         distance: 0.13
     });
     if (slicerService) {

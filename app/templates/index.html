@@ -311,8 +311,9 @@
           .attr("index", o);
 
         obstacleGroup.append("polygon")
-          .attr("class", "polygon polygon-obstacle")
+          .attr("class", "polygon" + (obstacle._deleted ? " polygon-deleted" : " polygon-obstacle"))
           .attr("points", d => d.points.map(p => `${xScale(p.x)}, ${yScale(p.y)}`).join(" "))
+          .on("contextmenu", contextMenu(getMenuObstacle({ map, areaIndex: idx, obstacleIndex: o, className, xScale, yScale,  area: navigation_area, obstacle, group: obstacleGroup })))
           .on("click", function (event, d) {
               if (event.shiftKey) {
                 const pointer = d3.pointer(event);
@@ -365,7 +366,12 @@
       //     points: area.points.map(point => ({ x: point.x, y: point.y }))
       //   }))
       // };
-
+      for (let area of map.navigation_areas) {
+        area.obstacles = area.obstacles.filter(o => !o._deleted);
+      }
+      for (let area of map.mowing_areas) {
+        area.obstacles = area.obstacles.filter(o => !o._deleted);
+      }
       fetch('/map', {
         method: 'POST',
         headers: {

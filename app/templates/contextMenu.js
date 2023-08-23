@@ -108,3 +108,15 @@ function getMenuArea(context) {
 		}
 	}]
 }
+
+function getMenuObstacle(context) {
+	const area = context.area;
+	const obstacle = context.obstacle;
+	return [{
+		title: (obstacle._deleted ? 'Restore': 'Delete'),
+		action: function(elm, d, event) {
+			obstacle._deleted = (obstacle._deleted ? false : true);
+			renderNavigationArea(area, context.areaIndex, context.className, true);
+		}
+	}]
+}
