@@ -106,6 +106,12 @@ function getMenuArea(context) {
 			  }
 			});
 		}
+	}, {
+		title: 'Start here',
+		action: function(elm, d, event) {
+			context.group.selectAll(".mow-path").remove();
+			startArea(context.areaIndex);
+		}
 	}]
 }
 

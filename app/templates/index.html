@@ -47,6 +47,18 @@
       opacity: 0.7;
       stroke-width: 2px;
     }
+    .robot-position {
+      fill: none;
+      stroke: red;
+      opacity: 0.7;
+      stroke-width: 2px;
+    }
+    .gps-position-fixed {
+      fill: darkgreen;
+    }
+    .gps-position-float {
+      fill: orange;
+    }
     .d3-context-menu {
       position: absolute;
       display: none;
@@ -168,6 +180,8 @@
 
       renderAreas(map.navigation_areas, "navigation-group");
       renderAreas(map.mowing_areas, "mowing-group");
+      //renderRobotPositions();
+
     }
     function renderAreas(navigation_areas, className) {
 
@@ -410,9 +424,6 @@
     // Attach event listener to the save button
     const saveButton = document.querySelector('.save-button');
     saveButton.addEventListener('click', saveNavigationAreas);
-
-    const simulateButton = document.querySelector('#simulate');
-    simulateButton.addEventListener('click', simulate);
   </script>
 </body>
 </html>
