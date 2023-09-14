@@ -35,6 +35,10 @@
       stroke-width: 1px;
       cursor: move;
     }
+    circle.home {
+      fill: darkgreen;
+      opacity: 0.7;
+    }
     .hovered-vertex {
       fill: lightblue;
     }
@@ -86,11 +90,26 @@
       background-color: #4677f8;
       color: #fefefe;
     }
+
+    .hidden-block {
+      display: none;
+      visibility: hidden;
+    }
+    .visible-block {
+      display: block;
+      visibility: visible;
+    }
   </style>
 </head>
 <body>
   <div><button class="save-button">Save</button>
-    <span id="pos_label" style="padding:20px"></span></div>
+    <span id="pos_label" style="padding:20px"></span>
+    <span id="home_position" style="padding:20px" class="hidden-block">
+      <input id="home_x" type="text"><input id="home_y" type="text">
+      <button id="set_home">Set</button>
+      <button id="cancel_home">Cancel</button>
+    </span>
+  </div>
   <div id="map"></div>
 
   <script src="https://d3js.org/d3.v7.min.js"></script>
@@ -180,6 +199,7 @@
 
       renderAreas(map.navigation_areas, "navigation-group");
       renderAreas(map.mowing_areas, "mowing-group");
+      renderHome(map.docking_point, "docking-point");
       //renderRobotPositions();
 
     }
@@ -373,6 +393,64 @@
       }
     }
 
+    // // Drag behavior for vertices
+    // function dragHome() {
+    //   return d3.drag()
+    //     .on("start", function (event) {
+    //       const selected = d3.select(this);
+    //       startX = parseFloat(selected.attr("cx")) - event.x;
+    //       startY = parseFloat(selected.attr("cy")) - event.y;
+    //     })
+    //     .on("drag", function (event, d) {
+    //       const scaledX = xScale.invert(event.x + startX);
+    //       const scaledY = yScale.invert(event.y + startY);
+    //       d.x = scaledX;
+    //       d.y = scaledY;
+    //       d3.select("#pos_label").text("x: " + scaledX.toFixed(2) + ", y: " + scaledY.toFixed(2));
+    //       d3.select(this)
+    //         .attr("cx", event.x + startX)
+    //         .attr("cy", event.y + startY);
+    //       renderHome(map.docking_point, "docking-point");
+    //     })
+    //     .on("end", function () {
+    //     });
+    // }
+
+    function renderHome(homePosition, className) {
+      svg.selectAll(".home-group").remove();
+
+      const homeGroup = svg.selectAll(".home-group")
+        .data([homePosition.position])
+        .enter()
+        .append("g")
+        .attr("class", "home-group");
+
+      homeGroup.append("circle")
+        .attr("class", "home")
+        .attr("cx", d => xScale(d.x))
+        .attr("cy", d => yScale(d.y))
+        .attr("r", 10)
+        .on("click", function (event, d) {
+          d3.select("#home_position").classed("hidden-block", false);
+        });
+//        .call(dragHome());
+//        .on("contextmenu", contextMenu(getMenuHome({ map, className, xScale, yScale, homePosition, group: homeGroup })));
+      d3.select("#home_x").attr("value", homePosition.position.x);
+      d3.select("#home_y").attr("value", homePosition.position.y);
+    }
+    function setHomePosition() {
+      const x = parseFloat(d3.select("#home_x").property("value"));
+      const y = parseFloat(d3.select("#home_y").property("value"));
+      map.docking_point.position.x = x;
+      map.docking_point.position.y = y;
+      renderHome(map.docking_point, "docking-point");
+      d3.select("#home_position").classed("hidden-block", true);
+    }
+    function resetHomePosition() {
+      renderHome(map.docking_point, "docking-point");
+      d3.select("#home_position").classed("hidden-block", true);
+    }
+
     function saveNavigationAreas() {
       // const transformedData = {
       //   navigation_areas: navigationAreas.navigation_areas.map(area => ({
@@ -424,6 +502,11 @@
     // Attach event listener to the save button
     const saveButton = document.querySelector('.save-button');
     saveButton.addEventListener('click', saveNavigationAreas);
+    // Attach event listener to the save / cancel home button
+    const setHomeButton = document.querySelector('#set_home');
+    setHomeButton.addEventListener('click', setHomePosition);
+    const cancelHomeButton = document.querySelector('#set_home');
+    cancelHomeButton.addEventListener('click', resetHomePosition);
   </script>
 </body>
 </html>
