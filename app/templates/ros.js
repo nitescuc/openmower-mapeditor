@@ -125,8 +125,9 @@ function addGpsPosition(position) {
       circle.setAttribute("class", "gps-position-fixed");
     } else {
       circle.setAttribute("class", "gps-position-float");
+      positionGroups.node().appendChild(circle);
     }
-    positionGroups.node().appendChild(circle);
+//    positionGroups.node().appendChild(circle);
   }
 }
 
