@@ -27,10 +27,7 @@ var ros = new ROSLIB.Ros();
             positionListener.unsubscribe();
             positionListener = null;
           }
-          if (gpsListener) {
-            gpsListener.unsubscribe();
-            gpsListener = null;
-          }
+          stopGpsListener();
         }
       }
     });
@@ -104,6 +101,13 @@ function startGpsListener(cb) {
   gpsListener.subscribe(cb);
 }
 
+stopGpsListener = () => {
+  if (gpsListener) {
+    gpsListener.unsubscribe();
+    gpsListener = null;
+  }
+}
+
 function startStateListener(cb) {
   var listener = new ROSLIB.Topic({
       ros: ros,
@@ -114,20 +118,26 @@ function startStateListener(cb) {
   listener.subscribe(cb);
 }
 
-function addGpsPosition(position) {
+function addGpsPosition(position, onlyFloat = true) {
   let positionGroups = svg.selectAll(".position-group");
-  if (!positionGroups.empty()) {
-    let circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-    circle.setAttribute("r", 2);
-    circle.setAttribute("cx", xScale(position.pose.pose.position.x));
-    circle.setAttribute("cy", yScale(position.pose.pose.position.y));
-    if (position.flags === 3) {
-      circle.setAttribute("class", "gps-position-fixed");
-    } else {
-      circle.setAttribute("class", "gps-position-float");
+  if (positionGroups.empty()) {
+    positionGroups = svg.selectAll(".position-group")
+      .data([{start:{x: position.x, y: position.y}}])
+      .enter()
+      .append("g")
+      .attr("class", "position-group");
+  }
+  let circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  circle.setAttribute("r", 2);
+  circle.setAttribute("cx", xScale(position.pose.pose.position.x));
+  circle.setAttribute("cy", yScale(position.pose.pose.position.y));
+  if (position.flags === 3) {
+    circle.setAttribute("class", "gps-position-fixed");
+    if (!onlyFloat)
       positionGroups.node().appendChild(circle);
-    }
-//    positionGroups.node().appendChild(circle);
+  } else {
+    circle.setAttribute("class", "gps-position-float");
+    positionGroups.node().appendChild(circle);
   }
 }
 

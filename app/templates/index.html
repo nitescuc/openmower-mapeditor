@@ -28,6 +28,10 @@
       stroke: black;
       stroke-width: 2px;
     }
+    .selected-polygon {
+      stroke: red;
+      stroke-width: 2px;
+    }
     .vertex {
       fill: white;
       opacity: 0.7;
@@ -48,6 +52,7 @@
     .mow-path {
       fill: none;
       stroke: red;
+      stroke-opacity: 0.5;
       opacity: 0.7;
       stroke-width: 2px;
     }
@@ -99,16 +104,26 @@
       display: block;
       visibility: visible;
     }
+    button {
+      padding: 5px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: medium;
+    }
   </style>
 </head>
-<body>
-  <div><button class="save-button">Save</button>
-    <span id="pos_label" style="padding:20px"></span>
-    <span id="home_position" style="padding:20px" class="hidden-block">
-      <input id="home_x" type="text"><input id="home_y" type="text">
-      <button id="set_home">Set</button>
-      <button id="cancel_home">Cancel</button>
+<body style="font-family: 'Courier New', Courier, monospace;">
+  <div id="home_position" style="position:absolute; top: 10px; left: 10px; background-color: lightgray; padding: 20px;" class="hidden-block">
+    <input id="home_x" type="text"><input id="home_y" type="text">
+    <button id="set_home">Set</button>
+    <button id="cancel_home">Cancel</button>
+  </div>
+  <div>
+    <button class="save-button">Save</button>
+    <span id="pos_label" style="padding:20px; width:200px; display: inline-block;"></span>
+    <span id="settings" style="padding:20px">
+      <input id="track_position" type="checkbox">Track GPS position</input>
     </span>
+    <button class="start-button">Start selected</button>
   </div>
   <div id="map"></div>
 
@@ -129,9 +144,13 @@
     let svg = d3.select("#map")
       .append("svg")
       .attr("viewBox", "0 0 1024 800");
-    svg.call(d3.zoom().on("zoom", function (event) {
-       updateMapAfterZoom(event);
-    }))
+    zoom = d3.zoom()
+      .on("zoom", function (event) {
+        updateMapAfterZoom(event);
+      })
+      .extent([[0, 0], [1024, 800]])
+      .scaleExtent([.5, 3]);
+    svg.call(zoom);
 
     svg.on("mousemove", function(event) {
       const pointer = d3.pointer(event);
@@ -181,21 +200,17 @@
         .domain([domain.minY - mapMargin, domain.maxY + mapMargin])
         .range([800, 0]);
 
-      // Create x-axis and y-axis scales
-      xAxis = d3.axisBottom(xScale).ticks(10);
-      yAxis = d3.axisLeft(yScale).ticks(10);
-
       // Append x-axis to the SVG
-      svg.append("g")
+      xAxis = svg.append("g")
         .attr("class", "x-axis")
         .attr("transform", "translate(0, " + yScale(0) + ")") // Position the x-axis at the bottom
-        .call(xAxis);
+        .call(d3.axisBottom(xScale).ticks(10));
 
       // Append y-axis to the SVG
-      svg.append("g")
+      yAxis = svg.append("g")
         .attr("class", "y-axis")
         .attr("transform", "translate(" + xScale(0) + ", 0)") // Position the x-axis at the bottom
-        .call(yAxis);
+        .call(d3.axisLeft(yScale).ticks(10));
 
       renderAreas(map.navigation_areas, "navigation-group");
       renderAreas(map.mowing_areas, "mowing-group");
@@ -320,7 +335,9 @@
               renderNavigationArea(d, idx, className, true);
             }
           } else {
-            renderNavigationArea(d, idx, className, true);
+            // renderNavigationArea(d, idx, className, true);
+            d3.selectAll(".polygon").classed("selected-polygon", false);
+            d3.select(this).classed("selected-polygon", true);
           }
         });
       d3.selectAll(".polygon").classed("selected-polygon", false);
@@ -499,14 +516,40 @@
         });
       }
     }
+
+    function startSelectedArea() {
+      const selectedArea = d3.select(".selected-polygon");
+      if (selectedArea.empty()) {
+        return;
+      }
+      const group = selectedArea.node().parentNode;
+      const areaIndex = d3.select(group).attr("index");
+			d3.selectAll(".mow-path").remove();
+//			startArea(index);
+    }
+
     // Attach event listener to the save button
     const saveButton = document.querySelector('.save-button');
     saveButton.addEventListener('click', saveNavigationAreas);
     // Attach event listener to the save / cancel home button
     const setHomeButton = document.querySelector('#set_home');
     setHomeButton.addEventListener('click', setHomePosition);
-    const cancelHomeButton = document.querySelector('#set_home');
+    const cancelHomeButton = document.querySelector('#cancel_home');
     cancelHomeButton.addEventListener('click', resetHomePosition);
+    // track gps position listener
+    const trackPositionCheckbox = document.querySelector('#track_position');
+    trackPositionCheckbox.addEventListener('change', function() {
+      if (trackPositionCheckbox.checked) {
+        startGpsListener(position => {
+            addGpsPosition(position, false);
+          });
+      } else {
+        stopGpsListener();
+      }
+    });
+    // Attach event listener to the start button
+    const startButton = document.querySelector('.start-button');
+    startButton.addEventListener('click', startSelectedArea);
   </script>
 </body>
 </html>
