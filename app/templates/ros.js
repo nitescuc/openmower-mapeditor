@@ -1,6 +1,8 @@
 let currentState = "IDLE";
 let positionListener = null;
 let gpsListener = null;
+let bumperListeners = [];
+let lastPosition = null;
 
 var ros = new ROSLIB.Ros();
   // If there is an error on the backend, an 'error' emit will be emitted.
@@ -16,18 +18,26 @@ var ros = new ROSLIB.Ros();
       if (currentState !== state.state_name) {
         currentState = state.state_name;
         if (currentState === "MOWING") {
+          // start position listener
           startPositionListener(position => {
+            lastPosition = position.pose.pose.position;
             addRobotPosition(position.pose.pose.position);
           });
+          // start gps listener
           startGpsListener(position => {
             addGpsPosition(position);
           });
+          // start bumper listener
+          startBumpersListener(() => {
+            addHitPosition(lastPosition);
+          })
         } else {
           if (positionListener) {
             positionListener.unsubscribe();
             positionListener = null;
           }
           stopGpsListener();
+          stopBumpersListener();
         }
       }
     });
@@ -108,6 +118,41 @@ stopGpsListener = () => {
   }
 }
 
+function startBumpersListener(cb) {
+  if (bumperListeners.length > 0) {
+    stopBumpersListener();
+  }
+  bumperListeners[0] = new ROSLIB.Topic({
+    ros: ros,
+    name: 'bumper/left',
+    messageType: 'sensor_msgs/Range',
+    throttle_rate: 100
+  });
+  bumperListeners[0].subscribe(range => {
+    if (range.range > 0) {
+      cb();
+    }
+  });
+  bumperListeners[1] = new ROSLIB.Topic({
+    ros: ros,
+    name: 'bumper/right',
+    messageType: 'sensor_msgs/Range',
+    throttle_rate: 100
+  });
+  bumperListeners[1].subscribe(range => {
+    if (range.range > 0) {
+      cb();
+    }
+  });
+}
+
+function stopBumpersListener() {
+  bumperListeners.forEach(listener => {
+    listener.unsubscribe();
+  });
+  bumperListeners = [];
+}
+
 function startStateListener(cb) {
   var listener = new ROSLIB.Topic({
       ros: ros,
@@ -163,4 +208,21 @@ function addRobotPosition(position) {
   point.y = yScale(position.y);
   let polyline = document.getElementById('robot-position');
   polyline.points.appendItem(point);
+}
+
+function addHitPosition(point) {
+  let positionGroups = svg.selectAll(".hit-group");
+  if (positionGroups.empty()) {
+    positionGroups = svg.selectAll(".hit-group")
+      .data([{start:{x: point.x, y: point.y}}])
+      .enter()
+      .append("g")
+      .attr("class", "hit-group");
+  }
+  let circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  circle.setAttribute("r", 5);
+  circle.setAttribute("cx", xScale(point.x));
+  circle.setAttribute("cy", yScale(point.y));
+  circle.setAttribute("class", "hit-position");
+  positionGroups.node().appendChild(circle);
 }

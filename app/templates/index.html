@@ -68,6 +68,11 @@
     .gps-position-float {
       fill: orange;
     }
+    .hit-position {
+      fill: red;
+      stroke: black;
+      stroke-width: 2px;
+    }
     .d3-context-menu {
       position: absolute;
       display: none;
@@ -122,6 +127,7 @@
     <span id="pos_label" style="padding:20px; width:200px; display: inline-block;"></span>
     <span id="settings" style="padding:20px">
       <input id="track_position" type="checkbox">Track GPS position</input>
+      </span id="pos_stdev"></span>
     </span>
     <button class="start-button">Start selected</button>
   </div>
@@ -525,7 +531,7 @@
       const group = selectedArea.node().parentNode;
       const areaIndex = d3.select(group).attr("index");
 			d3.selectAll(".mow-path").remove();
-//			startArea(index);
+			startArea(index);
     }
 
     // Attach event listener to the save button
@@ -543,8 +549,10 @@
         startGpsListener(position => {
             addGpsPosition(position, false);
           });
+          d3.selectAll("#pos_stdev").text("aaa");
       } else {
         stopGpsListener();
+        d3.selectAll("#pos_stdev").text("");
       }
     });
     // Attach event listener to the start button
