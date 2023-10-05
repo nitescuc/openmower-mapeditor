@@ -531,7 +531,7 @@
       const group = selectedArea.node().parentNode;
       const areaIndex = d3.select(group).attr("index");
 			d3.selectAll(".mow-path").remove();
-			startArea(index);
+			startArea(parseInt(areaIndex));
     }
 
     // Attach event listener to the save button
