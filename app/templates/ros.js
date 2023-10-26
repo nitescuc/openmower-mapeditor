@@ -14,15 +14,15 @@ var ros = new ROSLIB.Ros();
   ros.on('connection', function() {
     console.log('Connection made!');
 
+    // start position listener
+    startPositionListener(position => {
+      lastPosition = position.pose.pose.position;
+      addRobotPosition(position.pose.pose.position);
+    });
     startStateListener(state => {
       if (currentState !== state.state_name) {
         currentState = state.state_name;
         if (currentState === "MOWING") {
-          // start position listener
-          startPositionListener(position => {
-            lastPosition = position.pose.pose.position;
-            addRobotPosition(position.pose.pose.position);
-          });
           // start gps listener
           startGpsListener(position => {
             addGpsPosition(position);
@@ -32,10 +32,6 @@ var ros = new ROSLIB.Ros();
             addHitPosition(lastPosition);
           })
         } else {
-          if (positionListener) {
-            positionListener.unsubscribe();
-            positionListener = null;
-          }
           stopGpsListener();
           stopBumpersListener();
         }
@@ -45,7 +41,11 @@ var ros = new ROSLIB.Ros();
 
   ros.on('close', function() {
     console.log('Connection closed.');
-  });
+    if (positionListener) {
+      positionListener.unsubscribe();
+      positionListener = null;
+    }
+});
 
 function getMowPath(area, obstacles, config, cb) {
     if (!ros.isConnected) {
@@ -75,21 +75,73 @@ function getMowPath(area, obstacles, config, cb) {
 }
 
 function startArea(areaIndex) {
-    if (!ros.isConnected) {
-        return;
-    }
-    var startService = new ROSLIB.Service({
-      ros: ros,
-      name: 'mower_service/start_in_area',
-      serviceType: 'mower_msgs/StartInAreaSrv'
-    });
-    var request = new ROSLIB.ServiceRequest({
-        area: areaIndex
-    });
-    if (startService) {
-        startService.callService(request, console.log, console.error);
-    }      
+  if (!ros.isConnected) {
+      return;
+  }
+  var startService = new ROSLIB.Service({
+    ros: ros,
+    name: 'mower_service/start_in_area',
+    serviceType: 'mower_msgs/StartInAreaSrv'
+  });
+  var request = new ROSLIB.ServiceRequest({
+      area: areaIndex
+  });
+  if (startService) {
+      startService.callService(request, console.log, console.error);
+  }      
 }
+
+function start() {
+  if (!ros.isConnected) {
+      return;
+  }
+  var startService = new ROSLIB.Service({
+    ros: ros,
+    name: 'mower_service/high_level_control',
+    serviceType: 'mower_msgs/HighLevelControlSrv'
+  });
+  var request = new ROSLIB.ServiceRequest({
+      command: 1
+  });
+  if (startService) {
+      startService.callService(request, console.log, console.error);
+  }      
+}
+
+function dock() {
+  if (!ros.isConnected) {
+    return;
+  }
+  var startService = new ROSLIB.Service({
+    ros: ros,
+    name: 'mower_service/high_level_control',
+    serviceType: 'mower_msgs/HighLevelControlSrv'
+  });
+  var request = new ROSLIB.ServiceRequest({
+      command: 2
+  });
+  if (startService) {
+      startService.callService(request, console.log, console.error);
+  }      
+}
+
+function skip() {
+  if (!ros.isConnected) {
+    return;
+  }
+  var startService = new ROSLIB.Service({
+    ros: ros,
+    name: 'mower_service/high_level_control',
+    serviceType: 'mower_msgs/HighLevelControlSrv'
+  });
+  var request = new ROSLIB.ServiceRequest({
+      command: 4
+  });
+  if (startService) {
+      startService.callService(request, console.log, console.error);
+  }      
+}
+
 
 function startPositionListener(cb) {
   positionListener = new ROSLIB.Topic({
@@ -164,9 +216,9 @@ function startStateListener(cb) {
 }
 
 function addGpsPosition(position, onlyFloat = true) {
-  let positionGroups = svg.selectAll(".position-group");
+  let positionGroups = mainGroup.selectAll(".position-group");
   if (positionGroups.empty()) {
-    positionGroups = svg.selectAll(".position-group")
+    positionGroups = mainGroup.selectAll(".position-group")
       .data([{start:{x: position.x, y: position.y}}])
       .enter()
       .append("g")
@@ -187,33 +239,45 @@ function addGpsPosition(position, onlyFloat = true) {
 }
 
 function addRobotPosition(position) {
-  // make sure we created after area polygons
-  const areaGroups = svg.selectAll(".mowing-group");
-  if (areaGroups.empty()) return;
-  let positionGroups = svg.selectAll(".position-group");
-  if (positionGroups.empty()) {
-    positionGroups = svg.selectAll(".position-group")
+  if (currentState === "MOWING") {
+    // make sure we created after area polygons
+    const areaGroups = mainGroup.selectAll(".mowing-group");
+    if (areaGroups.empty()) return;
+    let positionGroups = mainGroup.selectAll(".position-group");
+    if (positionGroups.empty()) {
+      positionGroups = mainGroup.selectAll(".position-group")
+        .data([{start:{x: position.x, y: position.y}}])
+        .enter()
+        .append("g")
+        .attr("class", "position-group");
+      positionGroups.append("polyline")
+        .attr("id", "robot-position")
+        .attr("class", d => "robot-position")
+        .attr("points", d => `${xScale(d.start.x)}, ${yScale(d.start.y)}`);
+    }
+
+    let point = mainGroup.node().createSVGPoint();
+    point.x = xScale(position.x);
+    point.y = yScale(position.y);
+    let polyline = document.getElementById('robot-position');
+    polyline.points.appendItem(point);
+  }
+  robotPositionSymbolGroup = mainGroup.selectAll("#robot-current-position");
+  if (robotPositionSymbolGroup.empty()) {
+    robotPositionSymbolGroup = mainGroup.selectAll("#robot-current-position")
       .data([{start:{x: position.x, y: position.y}}])
       .enter()
       .append("g")
-      .attr("class", "position-group");
-    positionGroups.append("polyline")
-      .attr("id", "robot-position")
-      .attr("class", d => "robot-position")
-      .attr("points", d => `${xScale(d.start.x)}, ${yScale(d.start.y)}`);
+      .attr("id", "robot-current-position");
   }
-
-  let point = svg.node().createSVGPoint();
-  point.x = xScale(position.x);
-  point.y = yScale(position.y);
-  let polyline = document.getElementById('robot-position');
-  polyline.points.appendItem(point);
+  robotPositionSymbolGroup.attr("transform", d => `translate(${xScale(d.start.x)-8}, ${yScale(d.start.y)-8})`);
+  sheep(robotPositionSymbolGroup);
 }
 
 function addHitPosition(point) {
-  let positionGroups = svg.selectAll(".hit-group");
+  let positionGroups = mainGroup.selectAll(".hit-group");
   if (positionGroups.empty()) {
-    positionGroups = svg.selectAll(".hit-group")
+    positionGroups = mainGroup.selectAll(".hit-group")
       .data([{start:{x: point.x, y: point.y}}])
       .enter()
       .append("g")
