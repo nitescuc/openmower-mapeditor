@@ -244,33 +244,20 @@ function addRobotPosition(position) {
     const areaGroups = mainGroup.selectAll(".mowing-group");
     if (areaGroups.empty()) return;
     let positionGroups = mainGroup.selectAll(".position-group");
-    if (positionGroups.empty()) {
-      positionGroups = mainGroup.selectAll(".position-group")
-        .data([{start:{x: position.x, y: position.y}}])
-        .enter()
-        .append("g")
-        .attr("class", "position-group");
+    let polyline = document.getElementById('robot-position');
+    if (polyline == null) {
       positionGroups.append("polyline")
         .attr("id", "robot-position")
         .attr("class", d => "robot-position")
         .attr("points", d => `${xScale(d.start.x)}, ${yScale(d.start.y)}`);
     }
 
-    let point = mainGroup.node().createSVGPoint();
+    let point = svg.node().createSVGPoint();
     point.x = xScale(position.x);
     point.y = yScale(position.y);
-    let polyline = document.getElementById('robot-position');
     polyline.points.appendItem(point);
   }
   robotPositionSymbolGroup = mainGroup.selectAll("#robot-current-position");
-  if (robotPositionSymbolGroup.empty()) {
-    robotPositionSymbolGroup = mainGroup.selectAll("#robot-current-position")
-      .data([{}])
-      .enter()
-      .append("g")
-      .attr("id", "robot-current-position");
-    sheep(robotPositionSymbolGroup);
-  }
   robotPositionSymbolGroup.attr("transform", d => `translate(${xScale(position.x)-8}, ${yScale(position.y)-8})`);
 }
 

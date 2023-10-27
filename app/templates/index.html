@@ -235,7 +235,19 @@
 
       renderAreas(map.navigation_areas, "navigation-group");
       renderAreas(map.mowing_areas, "mowing-group");
+      // create positions group before home and sheep
+      mainGroup.selectAll(".position-group")
+        .data([{}])
+        .enter()
+        .append("g")
+        .attr("class", "position-group");
       renderHome(map.docking_point, "docking-point");
+      robotPositionSymbolGroup = mainGroup.selectAll("#robot-current-position")
+        .data([{}])
+        .enter()
+        .append("g")
+        .attr("id", "robot-current-position");
+      sheep(robotPositionSymbolGroup);
       // connect after render to make sure the map is already drawned
       ros.connect('ws://{{ rosbridge_host }}:{{ rosbridge_port }}');
     }
