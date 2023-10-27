@@ -109,7 +109,7 @@
       padding: 5px;
       font-family: 'Courier New', Courier, monospace;
       font-size: xx-large;
-      width: 150px;
+      width: 200px;
     }
     svg {
       border: 1px solid lightgray;
@@ -158,8 +158,6 @@
     let domain;
     let xScale, yScale;
     let xAxis, yAxis;
-
-    ros.connect('ws://{{ rosbridge_host }}:{{ rosbridge_port }}');
 
     // create main containers
     let svg = d3.select("#map").append("svg");
@@ -238,8 +236,8 @@
       renderAreas(map.navigation_areas, "navigation-group");
       renderAreas(map.mowing_areas, "mowing-group");
       renderHome(map.docking_point, "docking-point");
-      //renderRobotPositions();
-
+      // connect after render to make sure the map is already drawned
+      ros.connect('ws://{{ rosbridge_host }}:{{ rosbridge_port }}');
     }
     function renderAreas(navigation_areas, className) {
 
@@ -444,8 +442,8 @@
         .attr("class", "home-group");
 
       house(homeGroup);
-      homeGroup.attr("transform", d => `translate(${xScale(d.x)-8}, ${yScale(d.y)-8}) scale(32,32)`);
-      d3.selectAll("#house").on("click", function (event, d) {
+      homeGroup.attr("transform", d => `translate(${xScale(d.x)-7}, ${yScale(d.y)-7})`);
+      d3.selectAll(".home-group").on("click", function (event, d) {
         d3.select("#home_position").classed("hidden-block", false);
       });
       d3.select("#home_x").attr("value", homePosition.position.x);

@@ -265,13 +265,13 @@ function addRobotPosition(position) {
   robotPositionSymbolGroup = mainGroup.selectAll("#robot-current-position");
   if (robotPositionSymbolGroup.empty()) {
     robotPositionSymbolGroup = mainGroup.selectAll("#robot-current-position")
-      .data([{start:{x: position.x, y: position.y}}])
+      .data([{}])
       .enter()
       .append("g")
       .attr("id", "robot-current-position");
+    sheep(robotPositionSymbolGroup);
   }
-  robotPositionSymbolGroup.attr("transform", d => `translate(${xScale(d.start.x)-8}, ${yScale(d.start.y)-8})`);
-  sheep(robotPositionSymbolGroup);
+  robotPositionSymbolGroup.attr("transform", d => `translate(${xScale(position.x)-8}, ${yScale(position.y)-8})`);
 }
 
 function addHitPosition(point) {
