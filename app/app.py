@@ -20,6 +20,12 @@ parser.add_argument(
     help="Path to map.bag file",
 )
 parser.add_argument(
+    "--map_png",
+    dest="map_png_path",
+    default="data/map.png",
+    help="Path to map.png file",
+)
+parser.add_argument(
     "--rosbridge-host",
     dest="rosbridge_host",
     default=ROSBRIDGE_HOST,
@@ -49,6 +55,13 @@ def get_ros_js(filename):
     else:
         return "Not found", 404
 
+@app.route("/map.png", methods=["GET"])
+def get_map_pgm():
+    map_path = args.map_png_path
+    if os.path.exists(map_path):
+        with open(map_path, "rb") as f:
+            return f.read(), 200, {"Content-Type": "image/png"}
+    return "No map data found", 404
 
 @app.route("/map", methods=["GET"])
 def get_map():

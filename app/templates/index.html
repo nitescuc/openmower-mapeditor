@@ -60,9 +60,11 @@
     }
     .gps-position-fixed {
       fill: darkgreen;
+      color: darkgreen;
     }
     .gps-position-float {
       fill: orange;
+      color: orange;
     }
     .hit-position {
       fill: red;
@@ -144,6 +146,9 @@
       <input id="track_position" type="checkbox">Track GPS position</input>
     </span>
   </div>
+  <div>
+    <span id="position_accuracy" style="padding:20px"></span>
+  </div>
   <div><div id="map"></div></div>
 
   <script src="https://d3js.org/d3.v7.min.js"></script>
@@ -178,7 +183,9 @@
       d3.select("#pos_label").text("x: " + x.toFixed(2) + ", y: " + y.toFixed(2));
     });
 
-    // manage zoom
+    slam_map = mainGroup.append("image")
+      .attr("xlink:href", "/map.png");
+      // manage zoom
     function updateMapAfterZoom(event) {
       mainGroup.attr("transform", event.transform);
     }
@@ -198,11 +205,13 @@
       const maxX = d3.max(map.mowing_areas, d => d3.max(d.points, p => p.x));
       const minY = d3.min(map.mowing_areas, d => d3.min(d.points, p => p.y));
       const maxY = d3.max(map.mowing_areas, d => d3.max(d.points, p => p.y));
+      const min = d3.min([minX, minY]);
+      const max = d3.max([maxX, maxY]);
       return {
-        minX: minX,
-        maxX: maxX,
-        minY: minY,
-        maxY: maxY
+        minX: min,
+        maxX: max,
+        minY: min,
+        maxY: max
       }
     }
 
@@ -215,11 +224,11 @@
 
       xScale = d3.scaleLinear()
       .domain([domain.minX - mapMargin, domain.maxX + mapMargin])
-      .range([0, 800]);
+      .range([0, 1024]);
 
       yScale = d3.scaleLinear()
         .domain([domain.minY - mapMargin, domain.maxY + mapMargin])
-        .range([800, 0]);
+        .range([1024, 0]);
 
       // Append x-axis to the SVG
       xAxis = mainGroup.append("g")
@@ -233,21 +242,38 @@
         .attr("transform", "translate(" + xScale(0) + ", 0)") // Position the x-axis at the bottom
         .call(d3.axisLeft(yScale).ticks(20));
 
+      totalDomainX = domain.maxX - domain.minX - 2*mapMargin;
+      totalDomainY = domain.maxY - domain.minY - 2*mapMargin;
+      width = 1024*xScale(51.2)/xScale(totalDomainX);
+      height = 1024*yScale(51.2)/yScale(totalDomainY);
+      slam_map
+        .attr("width", width)
+        .attr("height", height)
+        .attr("x", -width/2 + xScale(0))
+        .attr("y", -height/2 + yScale(0));
       renderAreas(map.navigation_areas, "navigation-group");
       renderAreas(map.mowing_areas, "mowing-group");
-      // create positions group before home and sheep
-      mainGroup.selectAll(".position-group")
-        .data([{}])
-        .enter()
+      // create positions group (=traces of zones explored by the robot) before home and sheep
+      mainGroup
         .append("g")
         .attr("class", "position-group");
+      // create home position
+      mainGroup
+        .append("g")
+        .attr("class", "home-group")
+        .on("click", function (event, d) {
+          d3.select("#home_position").classed("hidden-block", false);
+        });
       renderHome(map.docking_point, "docking-point");
-      robotPositionSymbolGroup = mainGroup.selectAll("#robot-current-position")
-        .data([{}])
-        .enter()
+      // render robot position
+      robotPositionSymbolGroup = mainGroup
         .append("g")
         .attr("id", "robot-current-position");
       sheep(robotPositionSymbolGroup);
+      // tracking gps position is last
+      mainGroup
+        .append("g")
+        .attr("class", "gps-position-group");
       // connect after render to make sure the map is already drawned
       ros.connect('ws://{{ rosbridge_host }}:{{ rosbridge_port }}');
     }
@@ -445,22 +471,13 @@
     }
 
     function renderHome(homePosition, className) {
-      mainGroup.selectAll(".home-group").remove();
-
-      const homeGroup = mainGroup.selectAll(".home-group")
-        .data([homePosition.position])
-        .enter()
-        .append("g")
-        .attr("class", "home-group");
-
+      const homeGroup = mainGroup.selectAll(".home-group");
       house(homeGroup);
-      homeGroup.attr("transform", d => `translate(${xScale(d.x)-7}, ${yScale(d.y)-7})`);
-      d3.selectAll(".home-group").on("click", function (event, d) {
-        d3.select("#home_position").classed("hidden-block", false);
-      });
+      homeGroup.attr("transform", d => `translate(${xScale(homePosition.position.x)-7}, ${yScale(homePosition.position.y)-7})`);
       d3.select("#home_x").attr("value", homePosition.position.x);
       d3.select("#home_y").attr("value", homePosition.position.y);
     }
+
     function setHomePosition() {
       const x = parseFloat(d3.select("#home_x").property("value"));
       const y = parseFloat(d3.select("#home_y").property("value"));
@@ -541,7 +558,7 @@
     trackPositionCheckbox.addEventListener('change', function() {
       if (trackPositionCheckbox.checked) {
         startGpsListener(position => {
-            addGpsPosition(position, false);
+            addGpsPosition(position, false, mainGroup.selectAll(".gps-position-group"));
           });
       } else {
         stopGpsListener();

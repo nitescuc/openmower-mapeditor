@@ -47,6 +47,17 @@ var ros = new ROSLIB.Ros();
     }
 });
 
+function displayAccuracy(position) {
+  accuracy = position.position_accuracy;
+  const positionAccuracy = d3.select("#position_accuracy");
+  positionAccuracy.text(`Acc: ${(accuracy * 100).toFixed(2)}`);
+  if (position.flags === 3) {
+    positionAccuracy.attr("class", "gps-position-fixed");
+  } else {
+    positionAccuracy.attr("class", "gps-position-float");
+  }
+}
+
 function getMowPath(area, obstacles, config, cb) {
     if (!ros.isConnected) {
         return;
@@ -215,26 +226,19 @@ function startStateListener(cb) {
   listener.subscribe(cb);
 }
 
-function addGpsPosition(position, onlyFloat = true) {
-  let positionGroups = mainGroup.selectAll(".position-group");
-  if (positionGroups.empty()) {
-    positionGroups = mainGroup.selectAll(".position-group")
-      .data([{start:{x: position.x, y: position.y}}])
-      .enter()
-      .append("g")
-      .attr("class", "position-group");
-  }
-  let circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-  circle.setAttribute("r", 2);
-  circle.setAttribute("cx", xScale(position.pose.pose.position.x));
-  circle.setAttribute("cy", yScale(position.pose.pose.position.y));
+function addGpsPosition(position, onlyFloat = true, group = null) {
+  displayAccuracy(position);
+  if ((position.flags === 3) && onlyFloat) return;
+  const positionGroups = group != null ? group : mainGroup.selectAll(".position-group");
+  const circle = positionGroups.append("circle");
+  circle
+    .attr("r", 2)
+    .attr("cx", xScale(position.pose.pose.position.x))
+    .attr("cy", yScale(position.pose.pose.position.y));
   if (position.flags === 3) {
-    circle.setAttribute("class", "gps-position-fixed");
-    if (!onlyFloat)
-      positionGroups.node().appendChild(circle);
+    circle.attr("class", "gps-position-fixed");
   } else {
-    circle.setAttribute("class", "gps-position-float");
-    positionGroups.node().appendChild(circle);
+    circle.attr("class", "gps-position-float");
   }
 }
 
