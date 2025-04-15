@@ -36,6 +36,9 @@ var ros = new ROSLIB.Ros();
           stopBumpersListener();
         }
       }
+      const batt = d3.select("#battery_percentage");
+      batt.text(`Batt: ${(state.battery_percent * 100).toFixed(0)}%`);
+    
     });
   });
 
@@ -157,8 +160,8 @@ function skip() {
 function startPositionListener(cb) {
   positionListener = new ROSLIB.Topic({
       ros: ros,
-      name: 'xbot_positioning/xb_pose',
-      messageType: 'xbot_msgs/AbsolutePose',
+      name: '/odometry_map/filtered',
+      messageType: 'nav_msgs/Odometry',
       throttle_rate: 1000
   });
   positionListener.subscribe(cb);

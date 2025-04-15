@@ -102,12 +102,12 @@ def get_map():
                     "y": msg.position.y,
                     "z": msg.position.z,
                 },
-                # "orientation": {
-                #     "x": msg.orientation.x,
-                #     "y": msg.orientation.y,
-                #     "z": msg.orientation.z,
-                #     "w": msg.orientation.w,
-                # },
+                "orientation": {
+                    "x": msg.orientation.x,
+                    "y": msg.orientation.y,
+                    "z": msg.orientation.z,
+                    "w": msg.orientation.w,
+                },
             }
     bag.close()
 

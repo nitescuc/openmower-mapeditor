@@ -147,6 +147,7 @@
     </span>
   </div>
   <div>
+    <span id="battery_percentage" style="padding:20px"></span>
     <span id="position_accuracy" style="padding:20px"></span>
   </div>
   <div><div id="map"></div></div>
@@ -156,6 +157,7 @@
   <script src="js/symbols.js"></script>
   <script src="js/ros.js"></script>
   <script src="js/contextMenu.js"></script>
+  <script src="js/quaternion.min.js"></script>
   <script>
     const mapMargin = 2;
     const vertexRadius = 3;
@@ -471,8 +473,9 @@
     }
 
     function renderHome(homePosition, className) {
+      const q = new Quaternion(homePosition.orientation.w, homePosition.orientation.x, homePosition.orientation.y, homePosition.orientation.z);
       const homeGroup = mainGroup.selectAll(".home-group");
-      house(homeGroup);
+      house(homeGroup, q.toEuler()[0]);
       homeGroup.attr("transform", d => `translate(${xScale(homePosition.position.x)-7}, ${yScale(homePosition.position.y)-7})`);
       d3.select("#home_x").attr("value", homePosition.position.x);
       d3.select("#home_y").attr("value", homePosition.position.y);
