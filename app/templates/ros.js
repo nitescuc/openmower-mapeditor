@@ -17,7 +17,7 @@ var ros = new ROSLIB.Ros();
     // start position listener
     startPositionListener(position => {
       lastPosition = position.pose.pose.position;
-      addRobotPosition(position.pose.pose.position);
+      addRobotPosition(position.pose.pose);
     });
     startStateListener(state => {
       if (currentState !== state.state_name) {
@@ -245,7 +245,10 @@ function addGpsPosition(position, onlyFloat = true, group = null) {
   }
 }
 
-function addRobotPosition(position) {
+function addRobotPosition(pose) {
+  const position = pose.position;
+  const orientation = pose.orientation;
+  const q = new Quaternion(orientation.w, orientation.x, orientation.y, orientation.z);
   if (currentState === "MOWING") {
     // make sure we created after area polygons
     const areaGroups = mainGroup.selectAll(".mowing-group");
@@ -265,7 +268,7 @@ function addRobotPosition(position) {
     polyline.points.appendItem(point);
   }
   robotPositionSymbolGroup = mainGroup.selectAll("#robot-current-position");
-  robotPositionSymbolGroup.attr("transform", d => `translate(${xScale(position.x)-8}, ${yScale(position.y)-8})`);
+  robotPositionSymbolGroup.attr("transform", d => `translate(${xScale(position.x)-8}, ${yScale(position.y)-8}) rotate(${-q.toEuler()[0]*180/Math.PI-90},8,8)`);
 }
 
 function addHitPosition(point) {

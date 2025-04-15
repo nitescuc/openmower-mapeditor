@@ -475,7 +475,7 @@
     function renderHome(homePosition, className) {
       const q = new Quaternion(homePosition.orientation.w, homePosition.orientation.x, homePosition.orientation.y, homePosition.orientation.z);
       const homeGroup = mainGroup.selectAll(".home-group");
-      house(homeGroup, q.toEuler()[0]);
+      house(homeGroup, -q.toEuler()[0]);
       homeGroup.attr("transform", d => `translate(${xScale(homePosition.position.x)-7}, ${yScale(homePosition.position.y)-7})`);
       d3.select("#home_x").attr("value", homePosition.position.x);
       d3.select("#home_y").attr("value", homePosition.position.y);

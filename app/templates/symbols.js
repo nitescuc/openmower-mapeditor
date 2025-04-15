@@ -29,9 +29,9 @@ function house(group, yaw) {
         .append("line")
         .attr("x1", 7)
         .attr("y1", 7)
-        .attr("x2", 7)
-        .attr("y2", 64)
+        .attr("x2", 64)
+        .attr("y2", 7)
         .attr("stroke", "red")
         .attr("stroke-width", 1)
-        .attr("transform", `rotate(${yaw}, 0, 0)`)
+        .attr("transform", `rotate(${yaw*180/Math.PI}, 7, 7)`)
 }
