@@ -65,29 +65,51 @@ function getMenuVertex(context) {
     }]
 }
 
+function _makeAreaPoints(event, context) {
+	const pointer = d3.pointer(event, d3.select("#" + context.className + "-" + context.areaIndex).node());
+	const menuPointer = d3.pointer(event, d3.select(".d3-context-menu").node());		
+	const x = xScale.invert(pointer[0] - menuPointer[0]);
+	const y = yScale.invert(pointer[1] - menuPointer[1]);
+	const points = [];
+	for (let i = 0; i < 8; i++) {
+		points.push({x: x + 0.5 * Math.cos(i * Math.PI / 4), y: y + 0.5 * Math.sin(i * Math.PI / 4)});
+	}
+	return points;
+}
+
 function getMenuArea(context) {
 	const map = context.map;
 	const area = context.area;
 	return [{
 		title: 'Add obstacle',
 		action: function(elm, d, event) {
-			// elm = d3.select(elm);
-			const pointer = d3.pointer(event, d3.select("#" + context.className + "-" + context.areaIndex).node());			
-			const x = xScale.invert(pointer[0]);
-			const y = yScale.invert(pointer[1]);
-			const points = [];
-			for (let i = 0; i < 8; i++) {
-				points.push({x: x + 0.5 * Math.cos(i * Math.PI / 4), y: y + 0.5 * Math.sin(i * Math.PI / 4)});
-			}
-			area.obstacles.push({points: points});
+			area.obstacles.push({points: _makeAreaPoints(event, context), _deleted: false});
 			renderNavigationArea(area, context.areaIndex, context.className, true);
-		}
-	// }, {
-	// 	title: 'Reverse',
-	// 	action: function(elm, d, event) {
-	// 		area.points.reverse();
-	// 		renderNavigationArea(area, context.areaIndex, context.className, true);
-	// 	}
+		}, 
+	}, {
+		title: 'Add area before',
+		action: function(elm, d, event) {
+			points = _makeAreaPoints(event, context);
+			const newArea = {
+				points: points,
+				obstacles: [],
+				_deleted: false
+			};
+			map.mowing_areas.splice(context.areaIndex, 0, newArea);
+			renderAreas(map.mowing_areas,  "mowing-group");
+		}, 
+	}, {
+		title: 'Add area after',
+		action: function(elm, d, event) {
+			points = _makeAreaPoints(event, context);
+			const newArea = {
+				points: points,
+				obstacles: [],
+				_deleted: false
+			};
+			map.mowing_areas.splice(context.areaIndex+1, 0, newArea);
+			renderAreas(map.mowing_areas,  "mowing-group");
+		}, 
 	}, {
 		title: (area._deleted ? 'Restore': 'Delete'),
 		action: function(elm, d, event) {

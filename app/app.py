@@ -2,7 +2,7 @@ import sys
 from flask import Flask, request, render_template
 import rosbag
 from geometry_msgs.msg import Point32, Polygon
-#from _MapArea import MapArea
+from _MapArea import MapArea
 import datetime
 import json
 import os
@@ -70,7 +70,7 @@ def get_map():
     bag = rosbag.Bag(map_path, "r")
     message = {}
     for topic, msg, t in bag.read_messages():
-#        print(topic, msg)
+        # print(topic, msg)
         if "_mower_map__MapArea" in str(type(msg)):
             # Process messages as needed
             if topic not in message:
@@ -125,29 +125,12 @@ def post_map():
     # Rename map.bag to map.old
     json_data = request.get_json()
 
-    nav_area_idx = 0
-    mow_area_idx = 0
     org_map_bag = rosbag.Bag(map_path, "r")
     out_map_bag = rosbag.Bag(out_path, "w")
     for topic, msg, t in org_map_bag.read_messages():
         deleted = False
         if "_mower_map__MapArea" in str(type(msg)):
-            if topic == "mowing_areas":
-                data = json_data[topic][mow_area_idx]
-                mow_area_idx += 1
-            elif topic == "navigation_areas":
-                data = json_data[topic][nav_area_idx]
-                nav_area_idx += 1
-            msg.area.points = to_Point32_list(data["points"])
-            msg.obstacles = []
-            for obstacle in data["obstacles"]:
-                msg.obstacles.append(Polygon(to_Point32_list(obstacle["points"])))
-            # for o_idx in range(len(msg.obstacles)):
-            #     msg.obstacles[o_idx].points = to_Point32_list(
-            #         data["obstacles"][o_idx]["points"]
-            #     )
-            if data.get("_deleted", False):
-                deleted = True
+            continue
         if topic == "docking_point":
             data = json_data[topic]
             msg.position.x = data["position"]["x"]
@@ -160,6 +143,26 @@ def post_map():
 
         if not deleted:
             out_map_bag.write(topic, msg, t)
+    for data in json_data["mowing_areas"]:
+        if data.get("_deleted", False):
+            continue
+        msg = MapArea()
+        msg.name = data.get("name", "")
+        msg.area.points = to_Point32_list(data["points"])
+        msg.obstacles = []
+        for obstacle in data["obstacles"]:
+            msg.obstacles.append(Polygon(to_Point32_list(obstacle["points"])))
+        out_map_bag.write("mowing_areas", msg, t)
+    for data in json_data["navigation_areas"]:
+        if data.get("_deleted", False):
+            continue
+        msg = MapArea()
+        msg.name = data.get("name", "")
+        msg.area.points = to_Point32_list(data["points"])
+        msg.obstacles = []
+        for obstacle in data["obstacles"]:
+            msg.obstacles.append(Polygon(to_Point32_list(obstacle["points"])))
+        out_map_bag.write("navigation_areas", msg, t)
     out_map_bag.close()
 
     if os.path.exists(map_path):
