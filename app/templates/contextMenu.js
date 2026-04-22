@@ -55,6 +55,7 @@ function getMenuVertex(context) {
                 parentObject = map.mowing_areas[areaIndex];
                 break;
             case "obstacle":
+                const obstacleIndex = elm.attr("data-obstacle-index");
                 parentObject = map.mowing_areas[areaIndex].obstacles[obstacleIndex];
                 break;
         }
@@ -62,7 +63,29 @@ function getMenuVertex(context) {
         parentObject.points = points.slice(pointIndex).concat(points.slice(0, pointIndex));
         renderNavigationArea((areaType === "obstacle" ? map.mowing_areas[areaIndex] : parentObject), areaIndex, areaType, true);
       }
-    }]
+    }, {
+	  title: 'Delete point',
+	  action: function(elm, d, event) {		elm = d3.select(elm);
+		const areaIndex = elm.attr("data-area-index");
+		const areaType = elm.attr("area-type");
+		const pointIndex = elm.attr("data-point-index");
+		let parentObject;
+		switch(areaType) {
+			case "navigation-group":
+				parentObject = map.navigation_areas[areaIndex];
+				break;
+			case "mowing-group":
+				parentObject = map.mowing_areas[areaIndex];
+				break;
+			case "obstacle":
+				const obstacleIndex = elm.attr("data-obstacle-index");
+				parentObject = map.mowing_areas[areaIndex].obstacles[obstacleIndex];
+				break;
+		}
+		parentObject.points.splice(pointIndex, 1);
+		renderNavigationArea((areaType === "obstacle" ? map.mowing_areas[areaIndex] : parentObject), areaIndex, areaType, true);
+	  }
+	}];
 }
 
 function _makeAreaPoints(event, context) {
@@ -120,7 +143,12 @@ function getMenuArea(context) {
 		title: 'Slice',
 		action: function(elm, d, event) {
 			context.group.selectAll(".mow-path").remove();
-			getMowPath(area.points, area.obstacles, {}, function(result) {
+			getMowPath({
+				index: context.areaIndex,
+				area: area.points,
+				obstacles: area.obstacles,
+				config: map.slice_config
+			}, function(result) {
 			  for (let path of result.paths) {
 				context.group.append("polyline")
 				  .attr("class", "mow-path mow-path-"+(path.is_outline ? "outline" : "inner"))

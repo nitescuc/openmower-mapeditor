@@ -61,31 +61,56 @@ function displayAccuracy(position) {
   }
 }
 
-function getMowPath(area, obstacles, config, cb) {
+function getMowPath(params, cb) {
     if (!ros.isConnected) {
         return;
     }
-    let angle = config.angle;
+    const areaIndex = params.index;
+    const area = params.area;
+    const obstacles = params.obstacles;
+    let angle = params.config.angle;
+    let offset = params.config.offset;
+    let outlines = params.config.outlines;
     if (angle == null) {
       angle = Math.atan2((area[1].y - area[0].y), (area[1].x - area[0].x));
     }
-    var slicerService = new ROSLIB.Service({
+    // get area config
+    var areaConfigService = new ROSLIB.Service({
         ros: ros,
-        name: 'slic3r_coverage_planner/plan_path',
-        serviceType: 'slic3r_coverage_planner/PlanPath'
+        name: '/get_area_config',
+        serviceType: 'path_optimizer/GetAreaConfig'
     });
-    var request = new ROSLIB.ServiceRequest({
-        angle,
-        outline_count: 4,
-        outline: {points: area},
-        holes: obstacles,
-        fill_type: 0,
-        outer_offset: 0.3,
-        distance: 0.13
+    var areaConfigRequest = new ROSLIB.ServiceRequest({
+        area: areaIndex
     });
-    if (slicerService) {
-        slicerService.callService(request, cb, console.error);
-    }
+    areaConfigService.callService(areaConfigRequest, (result) => {
+      if (result) {
+        outlines = result.outlines_count;
+      }
+      var slicerService = new ROSLIB.Service({
+          ros: ros,
+          name: 'slic3r_coverage_planner/plan_path',
+          serviceType: 'slic3r_coverage_planner/PlanPath'
+      });
+      var request = new ROSLIB.ServiceRequest({
+          angle,
+          outline_count: outlines,
+          outline: {points: area},
+          holes: obstacles,
+          fill_type: 0,
+          outer_offset: offset,
+          distance: 0.13
+      });
+      if (slicerService) {
+          slicerService.callService(request, (result) => {
+            opt_request = new ROSLIB.ServiceRequest({
+              paths: result.paths,
+              area: areaIndex
+            });
+            cb(result.paths);
+          }, console.error);
+      }
+    }, console.error);
 }
 
 function startArea(areaIndex) {

@@ -518,24 +518,24 @@
         .catch(error => console.error(error));
     }
 
-    function simulate() {
-      const angle = parseInt(document.querySelector('#angle_input').value) * Math.PI / 180;
-      // display mow path
-      for (let i = 0; i < map.mowing_areas.length; i++) {
-        const navigation_area = map.mowing_areas[i];
-        const navigationGroups = mainGroup.selectAll("#mowing-group-" + i);
-        navigationGroups.selectAll(".mow-path").remove();
-        getMowPath(navigation_area.points, navigation_area.obstacles, {
-          angle
-        }, function(result) {
-          for (let path of result.paths) {
-            navigationGroups.append("polyline")
-              .attr("class", "mow-path mow-path-"+(path.is_outline ? "outline" : "inner"))
-              .attr("points", path.path.poses.map(p => `${xScale(p.pose.position.x)}, ${yScale(p.pose.position.y)}`).join(" "));
-          }
-        });
-      }
-    }
+    // function simulate() {
+    //   const angle = parseInt(document.querySelector('#angle_input').value) * Math.PI / 180;
+    //   // display mow path
+    //   for (let i = 0; i < map.mowing_areas.length; i++) {
+    //     const navigation_area = map.mowing_areas[i];
+    //     const navigationGroups = mainGroup.selectAll("#mowing-group-" + i);
+    //     navigationGroups.selectAll(".mow-path").remove();
+    //     getMowPath(navigation_area.points, navigation_area.obstacles, {
+    //       angle, offset, outlines
+    //     }, function(result) {
+    //       for (let path of result.paths) {
+    //         navigationGroups.append("polyline")
+    //           .attr("class", "mow-path mow-path-"+(path.is_outline ? "outline" : "inner"))
+    //           .attr("points", path.path.poses.map(p => `${xScale(p.pose.position.x)}, ${yScale(p.pose.position.y)}`).join(" "));
+    //       }
+    //     });
+    //   }
+    // }
 
     function startSelectedArea() {
       const selectedArea = d3.select(".selected-polygon");
