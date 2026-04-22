@@ -11,6 +11,9 @@ import argparse
 
 ROSBRIDGE_HOST = os.environ.get("ROSBRIDGE_HOST", "localhost")
 ROSBRIDGE_PORT = os.environ.get("ROSBRIDGE_PORT", "9090")
+OUTLINE_COUNT = int(os.environ.get("OM_OUTLINE_COUNT", 6))
+OUTLINE_OFFSET = float(os.environ.get("OM_OUTLINE_OFFSET", 0.25))
+WEB_SERVER_PORT = int(os.environ.get("WEB_SERVER_PORT", 5001))
 
 parser = argparse.ArgumentParser(description="OpenMower map editor")
 parser.add_argument(
@@ -111,6 +114,10 @@ def get_map():
             }
     bag.close()
 
+    message["slice_config"] = {
+        "offset": OUTLINE_OFFSET,
+        "outlines": OUTLINE_COUNT,
+    }
     return json.dumps(message)
 
 
@@ -179,4 +186,4 @@ def post_map():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=WEB_SERVER_PORT)

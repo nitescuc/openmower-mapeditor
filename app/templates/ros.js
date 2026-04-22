@@ -81,7 +81,7 @@ function getMowPath(params, cb) {
         serviceType: 'path_optimizer/GetAreaConfig'
     });
     var areaConfigRequest = new ROSLIB.ServiceRequest({
-        area: areaIndex
+        area: parseInt(areaIndex)
     });
     areaConfigService.callService(areaConfigRequest, (result) => {
       if (result) {
@@ -102,13 +102,7 @@ function getMowPath(params, cb) {
           distance: 0.13
       });
       if (slicerService) {
-          slicerService.callService(request, (result) => {
-            opt_request = new ROSLIB.ServiceRequest({
-              paths: result.paths,
-              area: areaIndex
-            });
-            cb(result.paths);
-          }, console.error);
+          slicerService.callService(request, cb, console.error);
       }
     }, console.error);
 }
